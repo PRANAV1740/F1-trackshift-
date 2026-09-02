@@ -14,7 +14,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from backend.state.baseline import BaselineTrajectory
 
 from backend.telemetry.schema import (
     OpponentState,
@@ -111,7 +114,7 @@ class RaceState:
     pit_history: list[PitStop] = field(default_factory=list)
 
     # --- populated by Phase 7 (baseline trajectory) ---
-    baseline_trajectory: Optional[dict] = None
+    baseline_trajectory: Optional["BaselineTrajectory"] = None
     # --- populated by Phase 9/10 (strategy engine / compound selection) ---
     current_strategy: Optional[dict] = None
     # --- populated by Phase 11 (position / outcome prediction) ---

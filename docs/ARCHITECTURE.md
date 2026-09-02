@@ -375,14 +375,29 @@ estimate. `LapRecord.is_clean()` (on `backend/state/race_state.py`) is the
 one shared "is this lap usable" predicate, used by both `backend/tyre` and
 `backend/pace` so the two don't duplicate or drift on the definition.
 
+## Baseline race trajectory (`backend/state/baseline.py`, Phase 7)
+
+"If current conditions continue, what happens?" — one continuously-
+maintained forward projection (not a multi-scenario/counterfactual
+simulation), recomputed on lap completion. Future pace/tyre-state
+projection and a recommended pit window (from Phase 5's
+`remaining_competitive_life_laps`) are genuine, reusing Phase 5/6's fitted
+models rather than re-deriving anything. Position, gaps, and finishing
+outcome are an **explicitly labeled naive carry-forward** of current
+values — the honest baseline given that a real forecast needs Phase 11
+(position prediction) and Phase 14 (opponent intelligence), neither built
+yet; `BaselineTrajectory.method_note` states this on the object itself so
+a consumer can't mistake it for a modeled forecast. There is no dedicated
+`backend/baseline` directory — this lives in `backend/state` since it's
+fundamentally an extrapolation *of* the race state.
+
 ## What is NOT built yet
 
-Past Phase 6: racing-line/opponent/weather intelligence, baseline
-trajectory, event detection, strategy engine, position prediction, radio
-pipeline, both dashboards, evaluation/backtesting, and the public API/WS
-surface. Each has a stub `README.md` in its directory stating this and
-what it will own — see the repository layout above and
-`docs/PROGRESS.md` for current status.
+Past Phase 7: racing-line/opponent/weather intelligence, event detection,
+strategy engine, position prediction, radio pipeline, both dashboards,
+evaluation/backtesting, and the public API/WS surface. Each has a stub
+`README.md` in its directory stating this and what it will own — see the
+repository layout above and `docs/PROGRESS.md` for current status.
 
 No claim is made anywhere in this repository of real F1 telemetry access,
 FIA system integration, or production readiness. Interfaces are designed so

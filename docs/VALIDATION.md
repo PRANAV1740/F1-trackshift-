@@ -141,6 +141,23 @@ elsewhere in the docs.
 - No new fitted parameters introduced in this phase (it composes Phase 5's
   fit), so no separate ground-truth recovery claim is made beyond Phase 5's.
 
+## Phase 7 — baseline race trajectory
+
+- 117/117 tests passing, up from 108. Covers projection with and without a
+  fitted degradation estimate, the pit-window recommendation appearing
+  only when a remaining-life estimate exists, naive position/gap
+  carry-forward, fuel-burn-rate estimation from observed history vs. the
+  documented default fallback, and lap-boundary-triggered caching.
+- A test-authoring mistake caught and fixed, same pattern as Phase 5/
+  Phase 2's findings: I initially asserted projected pace should worsen
+  monotonically over the horizon. It doesn't have to — fuel burn-off can
+  legitimately make the car faster early in a projection even as the tyre
+  degrades (the same effect already validated in
+  `test_simulator_generator.py` and `test_tyre_model.py`). Fixed the test
+  to check what's actually guaranteed by construction (the degradation
+  *component* alone is non-decreasing; total pace equals the documented
+  sum of its parts) rather than an emergent property that isn't promised.
+
 ## What's intentionally NOT claimed
 
 - No claim of real F1 telemetry access or FIA integration.

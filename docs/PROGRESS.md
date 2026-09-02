@@ -19,7 +19,7 @@ been verified.
 | 4 | Race state estimator | done | Incremental per-car RaceState + RaceStateEstimator, wired as an ingestion sink. 83/83 tests passing |
 | 5 | Tyre degradation intelligence | done | Assumed-physics decomposition + WLS degradation fit with grid-searched cliff and Bayesian-flavored posterior. 98/98 tests passing |
 | 6 | Pace intelligence | done | Composes Phase 5's decomposition at current state + rolling-average fallback + trend slope. 108/108 tests passing |
-| 7 | Baseline race trajectory | todo | |
+| 7 | Baseline race trajectory | done | Forward pace/tyre-state projection + pit window, naive-labeled position/gap carry-forward. 117/117 tests passing |
 | 8 | Event detection engine | todo | |
 | 9 | Strategy engine | todo | |
 | 10 | Compound selection | todo | |

@@ -19,6 +19,16 @@ boundary detection, which only needs the previous frame's lap number
 per the Phase 4 requirement.
 
 Lap completion produces a `LapRecord` (raw observed lap time + tyre state
-at the time), which is the raw input `backend/pace` and `backend/tyre` will
-decompose into effects in Phases 5-6 — this state does not itself attempt
+at the time), which is the raw input `backend/pace` and `backend/tyre`
+decompose into effects (Phases 5-6) — this state does not itself attempt
 that decomposition.
+
+**`baseline.py` / `baseline_estimator.py` (Phase 7).** The continuously-
+updated baseline trajectory: "if current conditions continue, what
+happens?" Future pace/tyre-state projection and a recommended pit window
+are genuine, built on Phase 5/6's fitted models; position/gap/finish-
+outcome are an explicitly-labeled **naive** carry-forward of current
+values (`BaselineTrajectory.method_note`), since a real forecast needs
+Phase 11 (position prediction) and Phase 14 (opponents), neither built
+yet. One continuously-maintained baseline, recomputed on lap completion —
+not a multi-scenario/counterfactual simulation.
