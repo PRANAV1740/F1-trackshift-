@@ -346,13 +346,29 @@ This is a deliberate reconciliation, not an omission: traffic's effect on
 this car's pace and on opponent proximity are the two things "traffic
 intelligence" would compute, and both already have a clear home.
 
+## Tyre degradation intelligence (`backend/tyre`, Phase 5)
+
+The flagship problem. Full design (the identifiability argument for why
+fuel effect and track evolution are *assumed*, documented functions rather
+than freely fit — they're collinear with tyre age within a single stint,
+which is a real statistical constraint, not a shortcut) lives in
+`backend/tyre/model.py`'s module docstring and `docs/MODELS.md`; validation
+methodology and numbers are in `docs/VALIDATION.md`.
+
+One generator change came out of this phase and is worth noting here since
+it affects the simulator's contract: `GeneratorConfig.starting_lap` lets a
+generation run represent a stint that starts partway through a race (fresh
+tyre age, but track evolution continues from the global lap number) —
+needed for honest multi-stint validation data, and reusable by Phase 18 for
+real pit-stop events rather than being thrown away.
+
 ## What is NOT built yet
 
-Past Phase 4: all six intelligence layers, event detection, strategy
-engine, position prediction, radio pipeline, both dashboards,
-evaluation/backtesting, and the public API/WS surface. Each has a stub
-`README.md` in its directory stating this and what it will own — see the
-repository layout above and `docs/PROGRESS.md` for current status.
+Past Phase 5: pace/racing-line/opponent/weather intelligence, event
+detection, strategy engine, position prediction, radio pipeline, both
+dashboards, evaluation/backtesting, and the public API/WS surface. Each has
+a stub `README.md` in its directory stating this and what it will own — see
+the repository layout above and `docs/PROGRESS.md` for current status.
 
 No claim is made anywhere in this repository of real F1 telemetry access,
 FIA system integration, or production readiness. Interfaces are designed so

@@ -5,11 +5,14 @@ description = "TrackShift 2026 -- simulator-independent, real-time race intellig
 requires-python = ">=3.11"
 dependencies = [
     "pydantic>=2.6",
+    "numpy>=1.26",
 ]
 
 # Grouped by the phase that first needs them (see docs/ARCHITECTURE.md
 # "Development Roadmap"), so `pip install -e .` stays light until a phase
-# actually requires the extra weight.
+# actually requires the extra weight. numpy graduated to a core dependency
+# in Phase 5 (backend/tyre's regression needs real linear-algebra, not a
+# hand-rolled matrix solver) -- everything else here is still opt-in.
 [project.optional-dependencies]
 api = [
     "fastapi>=0.110",
@@ -17,7 +20,6 @@ api = [
     "websockets>=12.0",
 ]
 ml = [
-    "numpy>=1.26",
     "pandas>=2.2",
     "scikit-learn>=1.4",
     "xgboost>=2.0",

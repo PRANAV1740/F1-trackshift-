@@ -43,6 +43,7 @@ class LapRecord:
     lap_time_s: Optional[float]
     tyre_compound: Optional[TyreCompound]
     tyre_age_laps: Optional[int]
+    fuel_load_kg_start: Optional[float]
     was_pit_lap: bool
     track_state_at_end: Optional[TrackState]
     avg_confidence: float

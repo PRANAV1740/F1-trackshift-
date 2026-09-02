@@ -17,7 +17,7 @@ been verified.
 | 2 | Telemetry ingestion | done | IngestionService, EventBus, SimulatorAdapter, ReplayAdapter, RealCarAdapter placeholder, physics-informed simulator/generator. 53/53 tests passing |
 | 3 | Normalization / data quality | done | 10 concrete stages implemented and unit+integration tested. 75/75 tests passing |
 | 4 | Race state estimator | done | Incremental per-car RaceState + RaceStateEstimator, wired as an ingestion sink. 83/83 tests passing |
-| 5 | Tyre degradation intelligence | todo | |
+| 5 | Tyre degradation intelligence | done | Assumed-physics decomposition + WLS degradation fit with grid-searched cliff and Bayesian-flavored posterior. 98/98 tests passing |
 | 6 | Pace intelligence | todo | |
 | 7 | Baseline race trajectory | todo | |
 | 8 | Event detection engine | todo | |

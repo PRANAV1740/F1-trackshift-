@@ -84,6 +84,50 @@ elsewhere in the docs.
 - No bugs found this phase requiring a design change — implementation
   matched the design on first test run.
 
+## Phase 5 — tyre degradation intelligence (the flagship problem)
+
+- 98/98 tests passing, up from 83.
+- **Controlled recovery (no model misspecification):** synthetic lap times
+  built from the estimator's own assumed fuel/evolution functions plus a
+  known injected degradation curve (rate=0.04s/lap, cliff at lap 18) and
+  small Gaussian noise (σ=0.05s). Recovered rate 0.04 ± 0.015s/lap, cliff
+  lap within ±5 of true, base pace within ±1s. This isolates the
+  regression machinery from the physics-assumption question.
+- **Realistic recovery (with model misspecification, against the real
+  simulator's ground truth):** two independently-generated 20-lap stints
+  on MEDIUM (true linear rate 0.028s/lap, true cliff at lap 22), pooled and
+  fit. Result: **Pearson correlation 0.974** between the fitted and true
+  degradation-vs-age curves over the observed range, **mean absolute error
+  0.15s**. The fitted linear rate (0.0099s/lap) and cliff-lap point
+  estimate (3, vs. true 22) were both substantially off in isolation —
+  documented and explained, not hidden: with no observations anywhere near
+  the true cliff (laps 0–19 only), the cliff location is fundamentally
+  underdetermined from this data, and the grid search is free to trade a
+  lower linear rate for an earlier, smaller cliff term that fits the
+  *observed* range just as well. The model's own `cliff_posterior`
+  correctly reflects this: it is diffuse (no candidate lap carries more
+  than ~3% of the posterior mass) rather than falsely confident, so
+  `cliff_probability_within()` reports honest, moderate uncertainty (0.49
+  at age 19 with a 3-lap lookahead) rather than near-certainty. **The
+  practically useful claim — how much slower the tyre will be at ages
+  actually observed or nearby — is well recovered (0.15s MAE); the
+  specific cliff-lap point estimate is not reliable this far from the true
+  cliff, and the model is honest about that via its posterior rather than
+  presenting a single confident number.**
+- **A real bug caught and fixed, not just tolerance-adjusted:** the first
+  version of the realistic validation test faked "this is stint 2 of a
+  longer race" only when constructing `TyreObservation`s for fitting (an
+  after-the-fact lap-number offset), while the underlying simulated
+  telemetry was still generated as if it were stint 1 — internally
+  inconsistent, since the assumed-evolution removal at the fitting step no
+  longer matched what was actually baked into the data. This produced a
+  **negative** correlation (-0.79) against ground truth. Root cause
+  diagnosed and fixed properly: added `GeneratorConfig.starting_lap` so
+  the generator itself can honestly produce a later-stint's data (tyre age
+  resets, track evolution continues from the global lap) — a legitimate,
+  reusable generator capability (Phase 18 needs exactly this for real
+  pit-stop events), not a test-only hack.
+
 ## What's intentionally NOT claimed
 
 - No claim of real F1 telemetry access or FIA integration.

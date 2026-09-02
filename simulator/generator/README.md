@@ -41,5 +41,10 @@ platform simulator-independent (see docs/ARCHITECTURE.md).
 prototype): fuel and degradation are modeled as a uniform pace multiplier
 applied to the whole lap's speed profile rather than affecting each corner
 individually; there is no multi-car interaction yet (opponents/gaps come in
-Phase 14/18); there are no pit stops yet (continuous single-stint only,
-until Phase 18).
+Phase 14/18); there is no literal in-run pit-stop event yet (continuous
+single-stint per generation run, until Phase 18) -- though
+`GeneratorConfig.starting_lap` (added in Phase 5, for `backend/tyre`'s
+multi-stint validation) already lets a run honestly represent "a stint that
+starts partway through a race": tyre age and fuel still start fresh, but
+track evolution uses the global lap number. Phase 18's real pit-stop
+events will build on this rather than replacing it.

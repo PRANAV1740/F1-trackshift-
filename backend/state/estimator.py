@@ -26,6 +26,7 @@ class RaceStateEstimator:
     def __init__(self):
         self._states: dict[str, RaceState] = {}
         self._lap_start_ts: dict[str, datetime] = {}
+        self._lap_start_fuel: dict[str, Optional[float]] = {}
         self._lap_confidence_sum: dict[str, float] = {}
         self._lap_confidence_count: dict[str, int] = {}
         self._lap_had_pit: dict[str, bool] = {}
@@ -48,12 +49,14 @@ class RaceStateEstimator:
             state = RaceState(car_id=car_id, current_lap=frame.lap)
             self._states[car_id] = state
             self._lap_start_ts[car_id] = frame.source_timestamp
+            self._lap_start_fuel[car_id] = frame.fuel_load_kg
             self._lap_confidence_sum[car_id] = 0.0
             self._lap_confidence_count[car_id] = 0
             self._lap_had_pit[car_id] = False
 
         if frame.lap > state.current_lap:
             self._finalize_lap(state, frame.source_timestamp)
+            self._lap_start_fuel[car_id] = frame.fuel_load_kg
 
         self._accumulate_lap_bookkeeping(car_id, frame)
         self._apply_frame(state, frame)
@@ -80,6 +83,7 @@ class RaceStateEstimator:
                 lap_time_s=lap_time_s,
                 tyre_compound=state.tyre_compound,
                 tyre_age_laps=state.tyre_age_laps,
+                fuel_load_kg_start=self._lap_start_fuel.get(car_id),
                 was_pit_lap=self._lap_had_pit.get(car_id, False),
                 track_state_at_end=state.track_state,
                 avg_confidence=avg_confidence,

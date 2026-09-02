@@ -128,3 +128,4 @@ def test_end_to_end_two_lap_simulation_produces_sane_state():
     assert lap1.lap == 1
     assert lap1.lap_time_s is not None and 60.0 < lap1.lap_time_s < 200.0
     assert 0.0 <= lap1.avg_confidence <= 1.0
+    assert lap1.fuel_load_kg_start == pytest.approx(config.starting_fuel_kg, abs=0.5)

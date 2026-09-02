@@ -65,6 +65,17 @@ class GeneratorConfig:
     air_temperature_c: float = 27.0
     weather: WeatherState = WeatherState.DRY
     start_time: datetime = DEFAULT_START_TIME
+    # First value of `frame.lap` this run produces. Distinct from tyre age,
+    # which always starts at 0 -- this is what lets a second stint (fresh
+    # tyres, but NOT a fresh race/track) be generated honestly: set
+    # `starting_lap` to where the previous stint left off. Track evolution
+    # is a track/session property and uses this global lap number; fuel and
+    # degradation are stint-relative and don't. See
+    # tests/test_tyre_model.py's multi-stint validation for why this
+    # distinction matters -- faking a lap offset only at the fitting step,
+    # without the underlying data reflecting it, produces biased,
+    # internally-inconsistent validation data.
+    starting_lap: int = 1
 
 
 def _gear_for_speed(speed_kph: float) -> int:
@@ -96,11 +107,20 @@ class TelemetryGenerator:
         self.injected_events: list[tuple[int, str]] = []
 
     def ground_truth_pace_penalty_s(self, lap: int, tyre_age_laps: int, fuel_load_kg: float) -> float:
-        """The total known pace penalty for a lap, for validation against estimators."""
+        """The total known pace penalty for a lap, for validation against estimators.
+
+        `lap` is this run's stint-local lap (1-indexed from this
+        generation's start). Track evolution additionally applies
+        `config.starting_lap` to get the global race lap, since track
+        evolution is a session/track property, not a stint-relative one --
+        unlike degradation (tyre-relative) and fuel (stint-relative). With
+        the default `starting_lap=1` this is a no-op (global == local).
+        """
 
         degradation = COMPOUND_MODELS[self.config.compound].pace_penalty_s(tyre_age_laps)
         fuel = fuel_effect_s(fuel_load_kg)
-        evolution = track_evolution_gain_s(lap)
+        global_lap = self.config.starting_lap + lap - 1
+        evolution = track_evolution_gain_s(global_lap)
         return degradation + fuel + evolution
 
     def frames(self) -> Iterator[RaceTelemetry]:
@@ -113,6 +133,7 @@ class TelemetryGenerator:
 
         for lap in range(1, cfg.laps + 1):
             tyre_age_laps = lap - 1
+            global_lap = cfg.starting_lap + lap - 1
             pos_m = 0.0
             fuel_at_lap_start = max(cfg.starting_fuel_kg - cfg.fuel_burn_per_lap_kg * (lap - 1), 0.0)
 
@@ -175,7 +196,7 @@ class TelemetryGenerator:
                     source_timestamp=timestamp,
                     sequence_id=sequence_id,
                     car_id=cfg.car_id,
-                    lap=lap,
+                    lap=global_lap,
                     sector=sector,
                     position=cfg.starting_position,
                     speed_kph=raw_speed_kph,
