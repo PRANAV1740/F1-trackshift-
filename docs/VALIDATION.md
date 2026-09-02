@@ -41,6 +41,37 @@ elsewhere in the docs.
   the "illustrative constants" notes in `simulator/generator/physics.py`
   and `ground_truth.py`.
 
+## Phase 3 — normalization / data quality
+
+- 75/75 tests passing, up from 53. Every stage has direct unit tests
+  (NaN→missing, unit conversion, timestamp jitter correction, duplicate
+  drop by sequence_id and by content fallback, LOCF missing-data handling,
+  negative-tyre-age and impossible-speed clamping, temperature-spike
+  detection against stable history, EMA smoothing of a noisy reading,
+  cross-frame feature extraction, confidence-score penalty from recorded
+  issues). An end-to-end test runs the full 10-stage pipeline against a
+  `SimulatorAdapter` stream under `NoiseConfig.severe()` and checks: no
+  NaNs survive, timestamps strictly increase, hard physical bounds hold,
+  every surviving frame has a confidence score, at least one duplicate was
+  actually dropped, and issues were recorded. A separate determinism test
+  confirms the same input sequence always normalizes identically.
+- Found and fixed during this phase: two of my own test assumptions were
+  wrong, not the implementation. (1) A test expected exactly one missing-
+  data warning but every LOCF-eligible field on a bare test frame is `None`
+  by default, so five warnings are correct. (2) A test generated frames
+  directly from `TelemetryGenerator.frames()` and expected transport-level
+  duplicates, but duplication is deliberately applied at the
+  `SimulatorAdapter` layer, not by the generator itself (see
+  simulator/generator/core.py's docstring) -- fixed by routing the test
+  through the adapter.
+- **Documented, known limitation:** `SpikeDetectionStage`'s fixed z-score
+  threshold can mistake a legitimate hard-braking event for a spike, or
+  miss one inside an already-noisy window. Thresholds are set
+  conservatively (wide) to favor precision over recall; a production
+  version would condition the expected value on track position, which this
+  pipeline deliberately doesn't have access to. No claim is made that spike
+  detection is complete or optimal.
+
 ## What's intentionally NOT claimed
 
 - No claim of real F1 telemetry access or FIA integration.

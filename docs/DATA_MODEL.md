@@ -64,6 +64,16 @@ normalization pipeline's job so it stays testable/tunable independently.
   one frame: source → raw values → what changed and why → final values →
   confidence (on `normalized_frame.sensor_confidence`).
 
+## Derived features (`backend/normalization/stages.py::FeatureExtractionStage`)
+
+Attached under `model_extra` (not first-class schema fields, to keep
+"derived" visibly distinct from "raw telemetry"):
+
+| Extra key | Meaning |
+|---|---|
+| `feature_speed_delta_kph` | `speed_kph - previous_frame.speed_kph` |
+| `feature_accel_estimate_ms2` | Speed delta converted to m/s² over the elapsed time between frames |
+
 ## Replay descriptor (`backend/adapters/replay.py`)
 
 `ReplayDescriptor(scenario_id, seed, config)` — frozen, with a derived

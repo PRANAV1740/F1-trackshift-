@@ -225,26 +225,61 @@ why the pipeline now returns a `NormalizationResult` per frame instead of a
 bare `RaceTelemetry`; see `docs/PROGRESS.md` for the full list of Phase 1
 foundation fixes.
 
-Planned stage order (Phase 3, not yet implemented — `tests/test_normalization_interface.py`
-validates the contract today with illustrative dummy stages, including one
-that reproduces the "negative tyre age" case from the problem prompt's
-extreme-condition test list):
+### Concrete stages (`backend/normalization/stages.py`, Phase 3)
 
-1. Schema/type validation of the raw frame
-2. Unit normalization (in case an adapter didn't normalize at the source)
-3. Timestamp alignment / jitter correction
-4. Duplicate detection
-5. Missing-value handling / interpolation
-6. Spike detection
-7. Impossible-value detection (e.g. negative tyre age, negative speed)
-8. Smoothing
-9. Feature extraction
-10. Sensor-confidence scoring (produces the frame's `sensor_confidence`)
+`default_pipeline()` assembles ten stages, in this order:
 
-Each stage is expected to *annotate* (`data_quality_flags` on the frame,
-plus `NormalizationIssue`/`FieldChange` on the log) rather than silently
-discard information wherever possible, so a decision can later be
-explained in terms of what the pipeline actually saw and did.
+1. **`SchemaValidationStage`** — pydantic's `float` type accepts NaN/Inf as
+   structurally valid; this catches that and treats it as missing.
+2. **`UnitNormalizationStage`** — folds a small, explicit table of known
+   alternate-unit extra fields (e.g. a hypothetical `speed_ms`) into the
+   canonical field. Adapters are expected to already emit canonical units;
+   this is a safety net, not the primary mechanism.
+3. **`TimestampAlignmentStage`** — nudges a non-monotonic `source_timestamp`
+   forward to just after the previous frame's, rather than attempting
+   reordering (impossible one-frame-at-a-time in a streaming pipeline).
+4. **`DuplicateDetectionStage`** — drops an exact repeat, keyed on
+   `sequence_id` when available, else on content equality.
+5. **`MissingDataHandlingStage`** — last-observation-carried-forward (LOCF)
+   on a handful of fast-changing channels (speed, throttle, brake,
+   steering, fuel). LOCF is the standard *online* approximation of
+   interpolation: true interpolation needs a known point on both sides,
+   which a streaming pipeline doesn't have.
+6. **`ImpossibleValueDetectionStage`** — clamps values against hard,
+   history-independent physical bounds (negative tyre age → 0, speed
+   outside [0, 400] kph, percentages outside [0, 100], etc.).
+7. **`SpikeDetectionStage`** — flags/clamps values that are statistically
+   anomalous versus this car's own rolling history (z-score over
+   `context.recent_frames`), even when within hard bounds. Deliberately
+   separate from stage 6: impossible-value detection needs no history,
+   spike detection needs a rolling window. **Documented limitation:** a
+   fixed z-score threshold can mistake a legitimate hard-braking event for
+   a spike, or miss a spike inside an already-noisy window's inflated
+   variance; thresholds are set conservatively (wide) to favor precision
+   over recall. A production version would condition the expected value on
+   track position, which this pipeline deliberately has no access to (see
+   simulator independence, above).
+8. **`SmoothingStage`** — exponential moving average on speed/steering/
+   brake/throttle, run *after* impossible-value and spike correction so
+   it's smoothing residual jitter, not large corrupted excursions.
+9. **`FeatureExtractionStage`** — attaches a small set of cross-frame
+   derived features (e.g. `feature_speed_delta_kph`) under `model_extra`,
+   for downstream models to consume without recomputing them.
+10. **`SensorConfidenceScoringStage`** — aggregates every issue/change
+    recorded by the *earlier stages in this same run* (all sharing one
+    `NormalizationRunLog` instance) into the frame's `SensorConfidence`.
+    This is a genuine summary of what happened to this specific frame, not
+    an independently-computed guess.
+
+Each stage *annotates* (`data_quality_flags` on the frame, plus
+`NormalizationIssue`/`FieldChange` on the log) rather than silently
+discarding information, so a decision can later be explained in terms of
+what the pipeline actually saw and did. See
+`tests/test_normalization_stages.py` for per-stage tests plus an
+end-to-end test running the full pipeline against severe simulator noise
+(via `SimulatorAdapter`, which is where transport-level drop/delay/
+duplicate corruption is actually applied — `TelemetryGenerator` on its own
+only produces sensor-level value noise).
 
 ## Observability (`backend/observability/logging.py`)
 
@@ -291,7 +326,7 @@ against known ground truth is meaningful rather than circular.
 
 ## What is NOT built yet
 
-Past Phase 2: race state estimator, all six intelligence layers, event
+Past Phase 3: race state estimator, all six intelligence layers, event
 detection, strategy engine, position prediction, radio pipeline, both
 dashboards, evaluation/backtesting, and the public API/WS surface. Each has
 a stub `README.md` in its directory stating this and what it will own — see

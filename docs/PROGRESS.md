@@ -15,7 +15,7 @@ been verified.
 | 1 | Repository + schemas | done | Reviewed critically this session; see "Foundation hardening" below |
 | 1.5 | Foundation hardening | done | Provenance, replay contract, observability. 26/26 tests passing |
 | 2 | Telemetry ingestion | done | IngestionService, EventBus, SimulatorAdapter, ReplayAdapter, RealCarAdapter placeholder, physics-informed simulator/generator. 53/53 tests passing |
-| 3 | Normalization / data quality | todo | |
+| 3 | Normalization / data quality | done | 10 concrete stages implemented and unit+integration tested. 75/75 tests passing |
 | 4 | Race state estimator | todo | |
 | 5 | Tyre degradation intelligence | todo | |
 | 6 | Pace intelligence | todo | |
