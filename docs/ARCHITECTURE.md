@@ -362,13 +362,27 @@ tyre age, but track evolution continues from the global lap number) —
 needed for honest multi-stint validation data, and reusable by Phase 18 for
 real pit-stop events rather than being thrown away.
 
+## Pace intelligence (`backend/pace`, Phase 6)
+
+Composes Phase 5's fitted degradation curve (base pace + assumed fuel +
+assumed evolution + fitted degradation, evaluated at the car's *current*
+age/fuel/lap) into an "expected clean pace right now", compared against
+the actual most recent lap's pace, plus a short-window trend slope. Falls
+back to a rolling average of recent clean laps early in a stint before
+Phase 5 has enough data to fit — labeled distinctly
+(`PaceEstimate.source`), never silently blended with the model-based
+estimate. `LapRecord.is_clean()` (on `backend/state/race_state.py`) is the
+one shared "is this lap usable" predicate, used by both `backend/tyre` and
+`backend/pace` so the two don't duplicate or drift on the definition.
+
 ## What is NOT built yet
 
-Past Phase 5: pace/racing-line/opponent/weather intelligence, event
-detection, strategy engine, position prediction, radio pipeline, both
-dashboards, evaluation/backtesting, and the public API/WS surface. Each has
-a stub `README.md` in its directory stating this and what it will own — see
-the repository layout above and `docs/PROGRESS.md` for current status.
+Past Phase 6: racing-line/opponent/weather intelligence, baseline
+trajectory, event detection, strategy engine, position prediction, radio
+pipeline, both dashboards, evaluation/backtesting, and the public API/WS
+surface. Each has a stub `README.md` in its directory stating this and
+what it will own — see the repository layout above and
+`docs/PROGRESS.md` for current status.
 
 No claim is made anywhere in this repository of real F1 telemetry access,
 FIA system integration, or production readiness. Interfaces are designed so

@@ -21,7 +21,7 @@ from typing import Optional
 
 from backend.observability.logging import get_logger
 from backend.state.race_state import LapRecord, RaceState
-from backend.telemetry.schema import TrackState, TyreCompound
+from backend.telemetry.schema import TyreCompound
 from backend.tyre.model import DegradationEstimate, TyreObservation, fit_degradation_model
 
 log = get_logger("tyre.estimator")
@@ -30,14 +30,15 @@ MIN_CONFIDENCE_TO_USE_LAP = 0.5
 
 
 def _is_usable(lap_record: LapRecord) -> bool:
+    """General usability (`LapRecord.is_clean`, shared with `backend/pace`)
+    plus tyre-specific requirements: the fields the degradation regression
+    actually needs (compound, age, fuel) must be present."""
+
     return (
-        lap_record.lap_time_s is not None
-        and not lap_record.was_pit_lap
+        lap_record.is_clean(MIN_CONFIDENCE_TO_USE_LAP)
         and lap_record.tyre_compound is not None
         and lap_record.tyre_age_laps is not None
         and lap_record.fuel_load_kg_start is not None
-        and (lap_record.track_state_at_end is None or lap_record.track_state_at_end == TrackState.GREEN)
-        and lap_record.avg_confidence >= MIN_CONFIDENCE_TO_USE_LAP
     )
 
 

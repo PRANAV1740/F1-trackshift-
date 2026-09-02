@@ -48,6 +48,23 @@ class LapRecord:
     track_state_at_end: Optional[TrackState]
     avg_confidence: float
 
+    def is_clean(self, min_confidence: float = 0.5) -> bool:
+        """Basic robust-statistics usability check, shared by every
+        consumer that fits something against lap times (backend/tyre,
+        backend/pace) so "what counts as a usable lap" is defined once,
+        not duplicated or drifting between modules. Deliberately minimal --
+        a full "representative clean lap" model (traffic, incidents) is
+        Phase 6's (backend/pace) job as its own intelligence output, not
+        this predicate's.
+        """
+
+        return (
+            self.lap_time_s is not None
+            and not self.was_pit_lap
+            and (self.track_state_at_end is None or self.track_state_at_end == TrackState.GREEN)
+            and self.avg_confidence >= min_confidence
+        )
+
 
 @dataclass
 class RaceState:
@@ -74,6 +91,7 @@ class RaceState:
     current_pace_s: Optional[float] = None
     expected_clean_pace_s: Optional[float] = None
     pace_delta_s: Optional[float] = None
+    pace_trend_s_per_lap: Optional[float] = None
 
     fuel_load_kg: Optional[float] = None
 

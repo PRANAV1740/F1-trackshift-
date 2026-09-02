@@ -111,3 +111,48 @@ docs/VALIDATION.md): two tiers, deliberately separate —
   single-stint data), but it should not be trusted as separating
   degradation from fuel/evolution in that case. This is a fundamental
   identifiability limit, not an implementation gap.
+
+## Pace model (`backend/pace/model.py`)
+
+**Used by:** `backend/pace/estimator.py::PaceIntelligenceEstimator`, which
+writes into `RaceState`'s `current_pace_s`, `expected_clean_pace_s`,
+`pace_delta_s`, `pace_trend_s_per_lap`.
+
+**Kind:** direct composition of the tyre model's decomposition (no
+independent fitting) plus one simple linear regression (`numpy.polyfit`,
+degree 1) for the trend slope. Not a separate statistical model of pace in
+its own right — deliberately, since Phase 5 already produces a validated
+decomposition; re-deriving it here would be duplicate, unjustified
+complexity.
+
+**Inputs / features:** `RaceState.completed_laps`, current lap/tyre-age/
+fuel, and (when available) Phase 5's fitted `DegradationEstimate` for this
+car and compound.
+
+**Target / output:** `expected_clean_pace_s` = `base_pace_s +
+assumed_fuel_effect_s(current_fuel) + assumed_track_evolution_gain_s
+(current_lap) + degradation_estimate.degradation_at(current_age)` when a
+fitted degradation curve exists; otherwise the mean of the last
+`TREND_WINDOW_LAPS` (5) clean laps, clearly labeled via
+`PaceEstimate.source ∈ {"tyre_model", "rolling_average",
+"insufficient_data"}` — callers must not conflate the two. `pace_trend_s_per_lap`
+is the OLS slope of lap time vs. lap number over the same recent-clean-laps
+window (requires ≥3 clean laps, else `None`).
+
+**Validation:** unit tests (`tests/test_pace_model.py`) cover both sources,
+the delta computation, the clean-lap trend slope against a known synthetic
+gradient (recovers a 0.5s/lap injected trend to ±0.01s/lap), and that an
+unclean lap (e.g. a pit lap) still shows up in `current_pace_s` but is
+excluded from the rolling average and trend. No separate ground-truth
+validation beyond Phase 5's, since this model doesn't introduce new fitted
+parameters of its own.
+
+**Known limitations:** the rolling-average fallback (used early in a
+stint, before Phase 5 has enough laps to fit) does not correct for fuel
+burn or track evolution at all — it is a genuinely weaker estimate, which
+is why it's labeled distinctly rather than blended silently with the
+tyre-model-based one. "Heavy traffic" and "major incidents" are excluded
+from the clean-lap set only via `avg_confidence` and track-state signals
+already on `LapRecord` — there is no dedicated traffic classifier; that
+depends on gap-to-car-ahead data, which becomes available with
+`backend/opponents` in Phase 14.

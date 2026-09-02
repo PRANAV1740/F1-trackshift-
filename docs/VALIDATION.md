@@ -128,6 +128,19 @@ elsewhere in the docs.
   reusable generator capability (Phase 18 needs exactly this for real
   pit-stop events), not a test-only hack.
 
+## Phase 6 — pace intelligence
+
+- 108/108 tests passing, up from 98. Covers both estimate sources
+  (tyre-model-composed and rolling-average fallback), correct exclusion of
+  unclean laps from the average/trend while still surfacing them via
+  `current_pace_s`, the delta computation, and trend-slope recovery against
+  a known synthetic gradient (0.5s/lap injected, recovered to ±0.01s/lap).
+  A wiring test confirms the estimator is lap-boundary-triggered (returns
+  the identical cached object, not a recompute, when called again with no
+  new completed laps).
+- No new fitted parameters introduced in this phase (it composes Phase 5's
+  fit), so no separate ground-truth recovery claim is made beyond Phase 5's.
+
 ## What's intentionally NOT claimed
 
 - No claim of real F1 telemetry access or FIA integration.
