@@ -258,13 +258,44 @@ ERROR before continuing, never a bare `except: pass`. It is explicitly not
 for the core pipeline (ingestion, normalization, state, strategy), which
 must fail loudly per engineering rule 18.
 
+## Ingestion (`backend/ingestion`) and concrete adapters (Phase 2)
+
+`IngestionService` runs every configured `SourceAdapter` concurrently,
+attaches `ingest_timestamp`, does structural (not value-plausibility)
+validation, pushes each frame through a `NormalizationPipeline`, and fans
+the `NormalizationResult` out to an `EventBus` and any number of sinks
+(Phase 4's race-state estimator will be the first real sink). A malformed
+frame, a failing adapter, or a failing sink are each logged and counted in
+`IngestionMetrics` without stopping the rest of the pipeline — see
+`backend/ingestion/README.md` and `backend/ingestion/service.py`'s
+docstring for the exact error-isolation guarantees.
+
+Two concrete adapters exist: `SimulatorAdapter` (wraps
+`simulator/generator`'s deterministic physics-informed telemetry, layering
+transport-level packet drop/delay/duplicate on top of the generator's
+sensor-level noise) and `ReplayAdapter` (replays a stored frame sequence,
+in-memory or from a JSONL file). `RealCarAdapter` is a placeholder whose
+`connect()`/`stream()` raise `NotImplementedError` — no real telemetry link
+exists or is claimed.
+
+`simulator/generator` is a genuinely physics-informed generator (a
+simplified point-mass double-pass lap simulation around a fully synthetic,
+invented track — see `simulator/generator/README.md`), not a toy random
+walk, specifically so it doesn't need to be thrown away and rewritten for
+Phase 18 (full event injection: SC/VSC/rain/opponents/pit stops) — Phase 18
+extends this module, it does not replace it. Its ground-truth degradation/
+fuel/track-evolution models (`simulator/generator/ground_truth.py`) are
+kept strictly separate from — and never imported by — the actual
+estimators in `backend/tyre`/`backend/pace`, so that Phase 5/6 validation
+against known ground truth is meaningful rather than circular.
+
 ## What is NOT built yet
 
-Everything past Phase 1: ingestion loop, race state estimator, all six
-intelligence layers, event detection, strategy engine, position prediction,
-simulator/replay, radio pipeline, both dashboards, evaluation/backtesting,
-and the public API/WS surface. Each has a stub `README.md` in its directory
-stating this and what it will own — see the repository layout above.
+Past Phase 2: race state estimator, all six intelligence layers, event
+detection, strategy engine, position prediction, radio pipeline, both
+dashboards, evaluation/backtesting, and the public API/WS surface. Each has
+a stub `README.md` in its directory stating this and what it will own — see
+the repository layout above and `docs/PROGRESS.md` for current status.
 
 No claim is made anywhere in this repository of real F1 telemetry access,
 FIA system integration, or production readiness. Interfaces are designed so
