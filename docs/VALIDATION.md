@@ -72,6 +72,18 @@ elsewhere in the docs.
   pipeline deliberately doesn't have access to. No claim is made that spike
   detection is complete or optimal.
 
+## Phase 4 — race state estimator
+
+- 83/83 tests passing, up from 75. Covers incremental field updates,
+  lap-boundary detection producing a correctly-timed `LapRecord`, a dropped
+  (fully-filtered) frame being a safe no-op, per-car state isolation,
+  pit-history de-duplication, confidence passthrough, and an end-to-end
+  two-lap simulation through the full pipeline + estimator producing a
+  sane final state (correct lap/tyre-age, one completed lap record with a
+  plausible lap time).
+- No bugs found this phase requiring a design change — implementation
+  matched the design on first test run.
+
 ## What's intentionally NOT claimed
 
 - No claim of real F1 telemetry access or FIA integration.

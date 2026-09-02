@@ -324,13 +324,35 @@ kept strictly separate from — and never imported by — the actual
 estimators in `backend/tyre`/`backend/pace`, so that Phase 5/6 validation
 against known ground truth is meaningful rather than circular.
 
+## Race state (`backend/state`, Phase 4)
+
+`RaceState` (one per car) is the shared object every intelligence module
+reads from and writes into — see field-level "populated by Phase N"
+comments in `backend/state/race_state.py` for what's real today versus a
+reserved placeholder. `RaceStateEstimator` builds it incrementally from a
+stream of `NormalizationResult`s and is designed to be plugged straight
+into `IngestionService` as a sink; every update is O(1) in the fields
+touched, with lap-boundary detection (which finalizes a `LapRecord`) the
+only place needing more than the current frame, and even that only needs
+the previous frame's lap number, already on the state — no full
+recomputation over history per frame.
+
+**Note on "Traffic Intelligence":** the six-layer pipeline diagram at the
+top of this document lists Traffic Intelligence as its own box, but the
+30-phase roadmap (docs/PROGRESS.md) has no standalone "traffic" phase — it
+folds into Phase 6 (Pace Intelligence downweights heavy-traffic laps) and
+Phase 14 (Opponent Intelligence tracks gaps/traffic state per opponent).
+This is a deliberate reconciliation, not an omission: traffic's effect on
+this car's pace and on opponent proximity are the two things "traffic
+intelligence" would compute, and both already have a clear home.
+
 ## What is NOT built yet
 
-Past Phase 3: race state estimator, all six intelligence layers, event
-detection, strategy engine, position prediction, radio pipeline, both
-dashboards, evaluation/backtesting, and the public API/WS surface. Each has
-a stub `README.md` in its directory stating this and what it will own — see
-the repository layout above and `docs/PROGRESS.md` for current status.
+Past Phase 4: all six intelligence layers, event detection, strategy
+engine, position prediction, radio pipeline, both dashboards,
+evaluation/backtesting, and the public API/WS surface. Each has a stub
+`README.md` in its directory stating this and what it will own — see the
+repository layout above and `docs/PROGRESS.md` for current status.
 
 No claim is made anywhere in this repository of real F1 telemetry access,
 FIA system integration, or production readiness. Interfaces are designed so
