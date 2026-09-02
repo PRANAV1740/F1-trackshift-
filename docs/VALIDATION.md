@@ -158,6 +158,23 @@ elsewhere in the docs.
   *component* alone is non-decreasing; total pace equals the documented
   sum of its parts) rather than an emergent property that isn't promised.
 
+## Phase 8 — event detection engine
+
+- 127/127 tests passing, up from 117. Covers rising-edge firing and
+  no-repeat-while-held for every live detector, threshold crossing for
+  tyre cliff/degradation-acceleration, bounded/per-car event history, and
+  a completeness check that every `EventType` has an entry in
+  `DETECTOR_STATUS`.
+- **A real bug caught by a regression test before it shipped, not after:**
+  the first version of `_detect_pace_events` had no edge-triggering at
+  all, so it would have emitted a fresh `PACE_DROP` event on every single
+  frame for the entire lap that the condition held (dozens of duplicate
+  events per lap at the simulator's 5Hz tick rate). Caught immediately by
+  writing the "must not spam within the same lap" test alongside the
+  other detectors' tests, before running against real simulated data —
+  fixed by adding the same edge-triggering memory the other detectors
+  already had.
+
 ## What's intentionally NOT claimed
 
 - No claim of real F1 telemetry access or FIA integration.

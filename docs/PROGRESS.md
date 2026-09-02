@@ -20,7 +20,7 @@ been verified.
 | 5 | Tyre degradation intelligence | done | Assumed-physics decomposition + WLS degradation fit with grid-searched cliff and Bayesian-flavored posterior. 98/98 tests passing |
 | 6 | Pace intelligence | done | Composes Phase 5's decomposition at current state + rolling-average fallback + trend slope. 108/108 tests passing |
 | 7 | Baseline race trajectory | done | Forward pace/tyre-state projection + pit window, naive-labeled position/gap carry-forward. 117/117 tests passing |
-| 8 | Event detection engine | todo | |
+| 8 | Event detection engine | done | 6/15 event types live (SC/VSC/tyre-cliff/degradation-accel/pace-drop/free-pit-window); rest honestly marked pending later phases. 127/127 tests passing |
 | 9 | Strategy engine | todo | |
 | 10 | Compound selection | todo | |
 | 11 | Position / outcome prediction | todo | |

@@ -391,10 +391,24 @@ a consumer can't mistake it for a modeled forecast. There is no dedicated
 `backend/baseline` directory — this lives in `backend/state` since it's
 fundamentally an extrapolation *of* the race state.
 
+## Event detection engine (`backend/events`, Phase 8)
+
+All 15 event types from the problem statement exist in `EventType`, but
+`DETECTOR_STATUS` states plainly that only 6 are live today — the ones
+whose evidence already exists (SC/VSC from raw flags, tyre cliff/
+degradation-acceleration from Phase 5, pace drop from Phase 6, free pit
+window from Phase 7). The rest are honestly marked as waiting on Phases 9,
+13, 14, or 15. `EventDetectionEngine.detect(state)` runs after every frame
+and edge-triggers against remembered per-car state, so a detector fires
+exactly once per transition, not once per frame while a condition holds —
+a bug in an early version (no edge-triggering on `PACE_DROP`) would have
+spammed one event per frame for the whole lap; caught by a regression test
+before it shipped (`tests/test_events.py`).
+
 ## What is NOT built yet
 
-Past Phase 7: racing-line/opponent/weather intelligence, event detection,
-strategy engine, position prediction, radio pipeline, both dashboards,
+Past Phase 8: racing-line/opponent/weather intelligence, strategy engine,
+position prediction, radio pipeline, both dashboards,
 evaluation/backtesting, and the public API/WS surface. Each has a stub
 `README.md` in its directory stating this and what it will own — see the
 repository layout above and `docs/PROGRESS.md` for current status.
