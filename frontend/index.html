@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TrackShift 2026 Race Intelligence Engine</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header class="navbar">
+    <div class="brand">
+      <span class="brand-badge">2026</span>
+      <span class="brand-title">TrackShift Race Intelligence</span>
+    </div>
+    
+    <nav class="nav-tabs">
+      <button class="nav-btn active" data-tab="pitwall">Pit Wall</button>
+      <button class="nav-btn" data-tab="hq">HQ Strategy</button>
+      <button class="nav-btn" data-tab="track">Track Viz</button>
+      <button class="nav-btn" data-tab="evaluation">Evaluation</button>
+    </nav>
+
+    <div class="status-indicator">
+      <span class="dot"></span>
+      <span id="ws-status">LIVE STREAM CONNECTED</span>
+    </div>
+  </header>
+
+  <div class="main-container">
+    
+    <!-- Controls Bar -->
+    <div class="control-bar">
+      <div class="scenario-select-group">
+        <label for="scenario-select" style="font-size: 0.9rem; color: var(--text-muted);">SCENARIO BENCHMARK:</label>
+        <select id="scenario-select" class="select-input">
+          <option value="normal_race">Normal Race (Clean 20 Laps)</option>
+          <option value="tyre_cliff">Tyre Cliff (Soft Tyre Degradation)</option>
+          <option value="vsc_pit_opportunity">VSC Pit Opportunity</option>
+          <option value="sc_pit_opportunity">Safety Car Pit Opportunity</option>
+          <option value="opponent_undercut">Opponent Undercut</option>
+          <option value="opponent_overcut">Opponent Overcut</option>
+          <option value="rain_arrival">Rain Arrival (Weather Shift)</option>
+          <option value="heavy_traffic">Heavy Traffic (Dirty Air)</option>
+          <option value="telemetry_corruption">Telemetry Corruption (Noise)</option>
+          <option value="missing_telemetry">Missing Telemetry (LOCF)</option>
+          <option value="strategy_inferiority">Strategy Inferiority</option>
+          <option value="driver_disagreement">Driver Radio Disagreement</option>
+        </select>
+        <button id="run-scenario-btn" class="btn-primary">RUN SCENARIO</button>
+      </div>
+
+      <div style="font-family: var(--font-mono); font-size: 0.9rem; color: var(--accent-cyan);">
+        LAP: <span id="current-lap-val" style="font-weight:700;">12</span> / 50
+      </div>
+    </div>
+
+    <!-- TAB 1: PIT WALL DASHBOARD (Phase 22) -->
+    <section id="tab-pitwall" class="tab-content active">
+      
+      <!-- Disagreement Alert Banner -->
+      <div id="disagreement-banner" class="disagreement-banner" style="display: none;">
+        <span class="disagreement-icon">⚠️</span>
+        <div>
+          <strong id="disagreement-title" style="color: var(--accent-red);">HUMAN / AI DISAGREEMENT DETECTED</strong>
+          <div id="disagreement-desc" style="font-size: 0.85rem; margin-top: 0.2rem;">Driver reports tyre graining over radio, but telemetry confirms healthy degradation rate (0.05s).</div>
+        </div>
+      </div>
+
+      <!-- Decision Hero Widget -->
+      <div class="decision-hero card">
+        <div class="card-title">OPTIMAL STRATEGY RECOMMENDATION</div>
+        <div id="hero-decision-action" class="decision-action">STAY OUT</div>
+        <div id="hero-decision-sub" style="font-size: 1.1rem; color: var(--text-muted);">EXTEND MEDIUM STINT</div>
+
+        <div class="decision-metrics">
+          <div class="metric-box">
+            <div id="metric-window" class="metric-val">LAP 16-18</div>
+            <div class="metric-lbl">RECOMMENDED WINDOW</div>
+          </div>
+          <div class="metric-box">
+            <div id="metric-compound" class="metric-val" style="color: var(--accent-amber);">HARD</div>
+            <div class="metric-lbl">TARGET COMPOUND</div>
+          </div>
+          <div class="metric-box">
+            <div id="metric-confidence" class="metric-val" style="color: var(--accent-green);">88%</div>
+            <div class="metric-lbl">MODEL CONFIDENCE</div>
+          </div>
+          <div class="metric-box">
+            <div id="metric-gain" class="metric-val" style="color: var(--accent-cyan);">+1.2s</div>
+            <div class="metric-lbl">DELTA TIME GAIN</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-pitwall" style="margin-top: 1.5rem;">
+        <!-- Strategic Reasons -->
+        <div class="card">
+          <div class="card-title">DECISION RATIONALE & PROVENANCE</div>
+          <ul id="reasons-list" class="reason-list">
+            <li>Clean air gap ahead exceeds 4.5 seconds</li>
+            <li>Tyre degradation rate linear at 0.03s/lap</li>
+            <li>No traffic penalty predicted upon pit exit</li>
+          </ul>
+        </div>
+
+        <!-- Latest Radio Message -->
+        <div class="card">
+          <div class="card-title">DRIVER RADIO TRANSCRIPT (DEMO MODE)</div>
+          <div id="radio-speaker" style="font-size: 0.8rem; color: var(--accent-cyan); font-weight: 700; margin-bottom: 0.5rem;">DRIVER (LAP 12):</div>
+          <blockquote id="radio-text" style="font-size: 1.1rem; font-style: italic; color: #fff; margin-bottom: 1rem;">
+            "Tyres feel fine, pace is consistent."
+          </blockquote>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">
+            DETECTED INTENTS: <span id="radio-intents" style="color: var(--accent-green); font-weight:700;">STRATEGY_STAY_OUT_REQUEST</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: HQ STRATEGY DASHBOARD (Phase 23) -->
+    <section id="tab-hq" class="tab-content">
+      <div class="grid-hq">
+        <!-- Multi-Car Race Leaderboard -->
+        <div class="card">
+          <div class="card-title">RACE ORDER & GAP TRACKING</div>
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <th>POS</th>
+                <th>CAR</th>
+                <th>COMPOUND</th>
+                <th>TYRE AGE</th>
+                <th>DEG RATE</th>
+                <th>CLIFF PROB</th>
+                <th>GAP AHEAD</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-body">
+              <tr>
+                <td>1</td>
+                <td><strong>#44 (VER)</strong></td>
+                <td><span style="color: var(--accent-amber);">MEDIUM</span></td>
+                <td>12 laps</td>
+                <td>0.03s/lap</td>
+                <td>15%</td>
+                <td>-</td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td>#1 (HAM)</td>
+                <td><span style="color: var(--accent-red);">SOFT</span></td>
+                <td>14 laps</td>
+                <td>0.08s/lap</td>
+                <td style="color: var(--accent-red); font-weight:700;">78%</td>
+                <td>+2.4s</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Weather & Environmental Intelligence -->
+        <div class="card">
+          <div class="card-title">ENVIRONMENTAL INTELLIGENCE</div>
+          <div style="font-size: 2rem; font-weight: 800; margin: 1rem 0; color: var(--accent-cyan);" id="weather-status">DRY</div>
+          <div style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+            RAIN PROBABILITY: <strong id="rain-prob" style="color: var(--text-primary);">5%</strong>
+          </div>
+          <div style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+            TRACK TEMP: <strong id="track-temp" style="color: var(--text-primary);">38.0°C</strong>
+          </div>
+          <div style="font-size: 0.9rem; color: var(--text-muted);">
+            AIR TEMP: <strong id="air-temp" style="color: var(--text-primary);">27.0°C</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: TRACK VISUALIZATION (Phase 24) -->
+    <section id="tab-track" class="tab-content">
+      <div class="grid-track">
+        <!-- SVG Circuit Map -->
+        <div class="card">
+          <div class="card-title">SYNTHETIC CIRCUIT MAP (14 CORNERS)</div>
+          <div class="track-svg-container">
+            <svg class="track-svg" viewBox="0 0 800 400">
+              <!-- Track Outline -->
+              <path d="M 100 200 C 100 100, 300 80, 400 120 C 500 160, 600 100, 700 200 C 750 280, 650 340, 500 320 C 350 300, 200 350, 100 200 Z" 
+                    fill="none" stroke="#22304a" stroke-width="24" stroke-linecap="round"/>
+              <path d="M 100 200 C 100 100, 300 80, 400 120 C 500 160, 600 100, 700 200 C 750 280, 650 340, 500 320 C 350 300, 200 350, 100 200 Z" 
+                    fill="none" stroke="#00f0ff" stroke-width="3" stroke-dasharray="8 4" opacity="0.8"/>
+
+              <!-- Corner Markers -->
+              <circle class="corner-node" cx="150" cy="130" r="6" fill="#ff3b5c" data-corner="1" />
+              <circle class="corner-node" cx="280" cy="95" r="6" fill="#ff3b5c" data-corner="2" />
+              <circle class="corner-node" cx="400" cy="120" r="6" fill="#ff3b5c" data-corner="3" />
+              <circle class="corner-node" cx="520" cy="140" r="6" fill="#ff3b5c" data-corner="4" />
+              <circle class="corner-node" cx="620" cy="120" r="6" fill="#ff3b5c" data-corner="5" />
+              <circle class="corner-node" cx="710" cy="220" r="6" fill="#ff3b5c" data-corner="6" />
+
+              <!-- Live Car Position Marker -->
+              <circle cx="400" cy="120" r="10" fill="#00f0ff" stroke="#fff" stroke-width="2">
+                <animate attributeName="r" values="8;12;8" dur="2s" repeatCount="indefinite"/>
+              </circle>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Corner Telemetry Inspector -->
+        <div class="card">
+          <div class="card-title">CORNER TELEMETRY INSPECTOR</div>
+          <div style="font-size: 1.2rem; font-weight: 700; color: var(--accent-cyan); margin-bottom: 1rem;" id="corner-title">CORNER 3 (MEDIUM HIGH SPEED)</div>
+          <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">LINE TYPE: <strong id="corner-line" style="color: var(--accent-green);">IDEAL</strong></div>
+          <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">BRAKING POINT: <strong id="corner-braking">145.0m</strong></div>
+          <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">ENTRY SPEED: <strong id="corner-entry">225 km/h</strong></div>
+          <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">APEX SPEED: <strong id="corner-apex">182 km/h</strong></div>
+          <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">EXIT SPEED: <strong id="corner-exit">248 km/h</strong></div>
+          <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">LINE DEVIATION: <strong id="corner-dev">0.12m</strong></div>
+          <div style="font-size: 0.9rem; color: var(--accent-amber);">CORNER TIME LOSS: <strong id="corner-loss">0.08s</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: BACKTESTING & EVALUATION (Phase 20/21) -->
+    <section id="tab-evaluation" class="tab-content">
+      <div class="card">
+        <div class="card-title">AI STRATEGY VS NAIVE BASELINE EVALUATION REPORT</div>
+        <div class="decision-metrics" style="margin-bottom: 1.5rem;">
+          <div class="metric-box">
+            <div id="eval-scenarios" class="metric-val">12</div>
+            <div class="metric-lbl">SCENARIOS EVALUATED</div>
+          </div>
+          <div class="metric-box">
+            <div id="eval-wins" class="metric-val" style="color: var(--accent-green);">9</div>
+            <div class="metric-lbl">AI STRATEGY WINS</div>
+          </div>
+          <div class="metric-box">
+            <div id="eval-saved" class="metric-val" style="color: var(--accent-cyan);">+142.5s</div>
+            <div class="metric-lbl">TOTAL RACE TIME SAVED</div>
+          </div>
+        </div>
+
+        <button id="run-eval-btn" class="btn-primary" style="margin-bottom: 1rem;">RUN FULL BENCHMARK EVALUATION</button>
+        <div id="eval-report-output" style="font-family: var(--font-mono); font-size: 0.85rem; background: rgba(0,0,0,0.4); padding: 1rem; border-radius: 8px; max-height: 300px; overflow-y: auto;">
+          Click button above to execute full evaluation suite.
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

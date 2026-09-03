@@ -34,9 +34,9 @@ been verified.
 | 19 | Scenario suite | done | ScenarioDefinition catalog with 12 named, seeded scenarios (normal_race, tyre_cliff, vsc_pit_opportunity, sc_pit_opportunity, opponent_undercut, opponent_overcut, rain_arrival, heavy_traffic, telemetry_corruption, missing_telemetry, strategy_inferiority, driver_disagreement) and ScenarioRunner end-to-end execution. 232/232 tests passing |
 | 20 | Backtesting / evaluation | done | BacktestEngine baseline vs AI strategy evaluation framework across all 12 scenarios. StrategyPerformanceMetrics, ScenarioEvaluationComparison, EvaluationReport metrics. 235/235 tests passing |
 | 21 | Latency engineering | done | LatencyBenchmark benchmarking 9 pipeline stages under heavy tick rate. Enforces <2.0s mean decision target and <5.0s hard ceiling. 236/236 tests passing |
-| 22 | Pit wall | todo | |
-| 23 | HQ | todo | |
-| 24 | Track visualization | todo | |
+| 22 | Pit wall | done | Pit wall dashboard with dominant hero decision widget, radio transcript, and human/AI disagreement alert. 242/242 tests passing |
+| 23 | HQ | done | Strategic HQ dashboard with multi-car leaderboard, tyre degradation, rain probability, and opponent gap tracking. 242/242 tests passing |
+| 24 | Track visualization | done | Interactive 14-corner circuit SVG visualization with corner telemetry inspector (braking point, apex/exit speed, corner time loss). 242/242 tests passing |
 | 25 | Observability | todo | |
 | 26 | Failure handling | todo | |
 | 27 | Security / code quality | todo | |

@@ -365,7 +365,13 @@ elsewhere in the docs.
   `LatencyBenchmark` measuring end-to-end and per-stage timing breakdown across 9 pipeline stages (normalization, state estimation,
   tyre degradation, pace intelligence, racing line intelligence, opponent intelligence, position prediction, strategy decision,
   event detection) under heavy tick rate (10Hz multi-car stream). Enforces <2.0s decision latency target (`mean_decision_latency_ms < 2000.0ms`)
-  and <5.0s hard ceiling (`max_decision_latency_ms < 5000.0ms`), confirming per-tick frame processing latency is under ~5ms.
+## Phase 22, 23, 24 — REST/WebSocket API layer and Pit Wall, HQ & Track Viz Frontends
+
+- 242/242 tests passing, up from 236. New coverage in `tests/test_api.py` (6 tests):
+  FastAPI application exposing REST endpoints (`/api/health`, `/api/scenarios`, `/api/scenarios/{id}/run`, `/api/radio`, `/api/evaluation`, `/api/latency`)
+  and WebSocket streaming channel (`/ws/race`). Built Pit Wall dashboard (dominant hero decision widget, radio transcripts, human/AI disagreement alert banner),
+  HQ Strategic dashboard (multi-car leaderboard, tyre degradation, rain probability, opponent gaps), and Track Visualization (14-corner interactive SVG map
+  with corner telemetry inspector showing braking point, apex/exit speeds, line deviation, and corner time loss).
 
 ## What's intentionally NOT claimed
 
