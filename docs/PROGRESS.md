@@ -32,7 +32,7 @@ been verified.
 | 17 | Human/AI disagreement | done | HumanAIDisagreementDetector comparing radio signals against telemetry estimates across 5 conflict types (tyre wear, cliff imminent, pit request vs strategy, rain vs dry, traffic vs gap). 223/223 tests passing |
 | 18 | Simulator / replay engine | done | FlagPeriod (Phase 12), WeatherTransition (Phase 13), multi-car concurrent adapters (Phase 14), and PitStopEvent in-run pit stops (tyre compound/age reset, stationary box time, pit speed capping, pit history). 207/207 tests passing |
 | 19 | Scenario suite | done | ScenarioDefinition catalog with 12 named, seeded scenarios (normal_race, tyre_cliff, vsc_pit_opportunity, sc_pit_opportunity, opponent_undercut, opponent_overcut, rain_arrival, heavy_traffic, telemetry_corruption, missing_telemetry, strategy_inferiority, driver_disagreement) and ScenarioRunner end-to-end execution. 232/232 tests passing |
-| 20 | Backtesting / evaluation | todo | |
+| 20 | Backtesting / evaluation | done | BacktestEngine baseline vs AI strategy evaluation framework across all 12 scenarios. StrategyPerformanceMetrics, ScenarioEvaluationComparison, EvaluationReport metrics. 235/235 tests passing |
 | 21 | Latency engineering | todo | |
 | 22 | Pit wall | todo | |
 | 23 | HQ | todo | |

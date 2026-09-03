@@ -1,7 +1,5 @@
 # evaluation/metrics
 
-**Status:** not yet implemented (Phase 17).
+**Status:** implemented (Phase 20).
 
-Shared metric definitions used by `evaluation/backtesting` and
-`evaluation/stress_tests`, so a number like "position gained" is computed
-the same way everywhere it's reported.
+Shared metric definitions (`StrategyPerformanceMetrics`, `ScenarioEvaluationComparison`, `EvaluationReport`) used by `evaluation/backtesting` and future benchmark suites so strategy metrics are computed consistently across all reports.
