@@ -42,7 +42,7 @@ DETECTOR_STATUS: dict[EventType, str] = {
     EventType.TYRE_DEGRADATION_ACCELERATING: "live (Phase 8, from backend/tyre's degradation_acceleration)",
     EventType.PACE_DROP: "live (Phase 8, from backend/pace's pace_delta)",
     EventType.FREE_PIT_WINDOW: "live (Phase 8, from backend/state's baseline recommended_pit_window)",
-    EventType.RAIN_INCOMING: "not yet detectable -- needs Phase 13 (weather intelligence)",
+    EventType.RAIN_INCOMING: "live (Phase 13, from backend/weather's rain-probability trend)",
     EventType.OPPONENT_PITTING: "not yet detectable -- needs Phase 14 (opponent intelligence)",
     EventType.UNDERCUT_OPPORTUNITY: "not yet detectable -- needs Phase 14 (opponent intelligence)",
     EventType.OVERCUT_OPPORTUNITY: "not yet detectable -- needs Phase 14 (opponent intelligence)",

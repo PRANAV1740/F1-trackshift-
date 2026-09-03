@@ -1,10 +1,15 @@
 # backend/weather
 
-**Status:** not yet implemented (Phase 15).
+**Status: implemented (Phase 13).**
 
-Weather state: dry/damp/wet, rain probability, track wetting rate, drying
-rate, and transition detection (see problem prompt section 17). No real
-weather feed is assumed to exist -- in this prototype, weather state is
-either taken from `RaceTelemetry.weather`/`rain_probability` as supplied by
-whichever adapter is active, or injected by `simulator/scenarios` for
-demo/testing. This is a documented limitation, not a claimed integration.
+No live weather feed exists or is claimed. `RaceTelemetry.weather`/
+`rain_probability` (populated by whichever adapter is active — the
+simulator via `GeneratorConfig.weather_transitions`, in this prototype) is
+already the clean integration point for a real one; this module never
+invents a separate weather-specific adapter.
+
+`model.py::assess_weather` tracks the actual trend in observed
+`rain_probability` (`numpy.polyfit` over a bounded per-car history, not
+just the instantaneous value) to detect wetting/drying transitions.
+`estimator.py::WeatherIntelligenceEstimator` builds that history
+incrementally. Feeds `backend/events`' `RAIN_INCOMING` detector.

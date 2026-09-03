@@ -37,6 +37,19 @@ always yields byte-identical output -- see
 other backend code imports this package directly, which is what keeps the
 platform simulator-independent (see docs/ARCHITECTURE.md).
 
+**Injectable events (Phase 12/13):** `GeneratorConfig.flag_periods`
+(`FlagPeriod(start_lap, end_lap, kind="SC"|"VSC")`) sets `safety_car`/`vsc`/
+`track_state` on generated frames for the given global-lap range and caps
+speed to a fixed fraction of profile speed (`SC_SPEED_CAP_FRACTION=0.40`,
+`VSC_SPEED_CAP_FRACTION=0.70` — documented as a hackathon-grade
+approximation, not a claim of matching real SC/VSC pace behavior).
+`GeneratorConfig.weather_transitions` (`WeatherTransition(start_lap,
+weather, rain_probability, ...)`) changes `weather`/`rain_probability`
+(and optionally track/air temperature) from a given global lap onward.
+Both are exercised end-to-end in `tests/test_sc_vsc_integration.py` (a
+simulator-injected SC period produces a real `SAFETY_CAR` event and an
+immediate strategy reassessment, not just a unit-level claim about it).
+
 **Known simplifications** (all deliberate, for a hackathon-grade
 prototype): fuel and degradation are modeled as a uniform pace multiplier
 applied to the whole lap's speed profile rather than affecting each corner

@@ -48,6 +48,38 @@ DEFAULT_START_TIME = datetime(2026, 1, 1, 13, 0, 0, tzinfo=timezone.utc)
 
 _GEAR_SPEED_THRESHOLDS_KPH = [0, 60, 100, 140, 180, 220, 260, 300]
 
+SC_SPEED_CAP_FRACTION = 0.40
+VSC_SPEED_CAP_FRACTION = 0.70
+
+
+@dataclass(frozen=True)
+class FlagPeriod:
+    """An injectable SC/VSC period, by GLOBAL lap number (see
+    `GeneratorConfig.starting_lap`) -- inclusive of both ends.
+
+    Speed is scaled down by a fixed fraction of the profile speed for the
+    duration (documented simplification: real SC/VSC pace is governed by
+    delta-time compliance and pit-lane-adjacent limits, not a flat fraction
+    of racing speed; this is a hackathon-grade approximation, not a claim
+    of matching real SC/VSC pace behavior).
+    """
+
+    start_lap: int
+    end_lap: int
+    kind: str  # "SC" or "VSC"
+    speed_cap_fraction: float | None = None
+
+
+@dataclass(frozen=True)
+class WeatherTransition:
+    """Weather from `start_lap` (global) onward, until the next transition."""
+
+    start_lap: int
+    weather: WeatherState
+    rain_probability: float = 0.0
+    track_temperature_c: float | None = None
+    air_temperature_c: float | None = None
+
 
 @dataclass
 class GeneratorConfig:
@@ -76,6 +108,8 @@ class GeneratorConfig:
     # without the underlying data reflecting it, produces biased,
     # internally-inconsistent validation data.
     starting_lap: int = 1
+    flag_periods: tuple[FlagPeriod, ...] = ()
+    weather_transitions: tuple[WeatherTransition, ...] = ()
 
 
 def _gear_for_speed(speed_kph: float) -> int:
@@ -94,6 +128,20 @@ def _corner_lateral_window(track: SyntheticTrack, distance_m: float):
     dist_from_apex = abs((distance_m - corner.apex_distance_m + track.length_m / 2) % track.length_m - track.length_m / 2)
     intensity = max(0.0, 1.0 - dist_from_apex / half) if half > 0 else 0.0
     return corner, intensity
+
+
+def _active_flag_period(cfg: "GeneratorConfig", global_lap: int) -> FlagPeriod | None:
+    for period in cfg.flag_periods:
+        if period.start_lap <= global_lap <= period.end_lap:
+            return period
+    return None
+
+
+def _active_weather(cfg: "GeneratorConfig", global_lap: int) -> WeatherTransition:
+    applicable = [t for t in cfg.weather_transitions if t.start_lap <= global_lap]
+    if not applicable:
+        return WeatherTransition(start_lap=0, weather=cfg.weather, rain_probability=0.0 if cfg.weather == WeatherState.DRY else 0.6)
+    return max(applicable, key=lambda t: t.start_lap)
 
 
 class TelemetryGenerator:
@@ -140,11 +188,22 @@ class TelemetryGenerator:
             penalty_s = self.ground_truth_pace_penalty_s(lap, tyre_age_laps, fuel_at_lap_start)
             pace_multiplier = max((baseline_lap_time + penalty_s) / baseline_lap_time, 0.3)
 
+            active_flag = _active_flag_period(cfg, global_lap)
+            active_weather = _active_weather(cfg, global_lap)
+            speed_cap_fraction = 1.0
+            if active_flag is not None:
+                if active_flag.speed_cap_fraction is not None:
+                    speed_cap_fraction = active_flag.speed_cap_fraction
+                elif active_flag.kind == "SC":
+                    speed_cap_fraction = SC_SPEED_CAP_FRACTION
+                else:
+                    speed_cap_fraction = VSC_SPEED_CAP_FRACTION
+
             while pos_m < cfg.track.length_m:
                 fuel_load = max(
                     fuel_at_lap_start - cfg.fuel_burn_per_lap_kg * (pos_m / cfg.track.length_m), 0.0
                 )
-                raw_speed_kph = self._speed_profile.speed_kph_at(pos_m) / pace_multiplier
+                raw_speed_kph = (self._speed_profile.speed_kph_at(pos_m) / pace_multiplier) * speed_cap_fraction
                 speed_ms = kph_to_ms(raw_speed_kph)
 
                 longitudinal_g = (speed_ms - prev_speed_ms) / dt / 9.81
@@ -213,11 +272,17 @@ class TelemetryGenerator:
                     tyre_age_laps=tyre_age_laps,
                     tyre_temperature=tyre_temperature,
                     fuel_load_kg=fuel_load,
-                    track_temperature_c=cfg.track_temperature_c,
-                    air_temperature_c=cfg.air_temperature_c,
-                    weather=cfg.weather,
-                    rain_probability=0.0 if cfg.weather == WeatherState.DRY else 0.6,
-                    track_state=TrackState.GREEN,
+                    track_temperature_c=active_weather.track_temperature_c or cfg.track_temperature_c,
+                    air_temperature_c=active_weather.air_temperature_c or cfg.air_temperature_c,
+                    weather=active_weather.weather,
+                    rain_probability=active_weather.rain_probability,
+                    track_state=(
+                        TrackState.SAFETY_CAR if active_flag and active_flag.kind == "SC"
+                        else TrackState.VIRTUAL_SAFETY_CAR if active_flag and active_flag.kind == "VSC"
+                        else TrackState.GREEN
+                    ),
+                    safety_car=bool(active_flag and active_flag.kind == "SC"),
+                    vsc=bool(active_flag and active_flag.kind == "VSC"),
                 )
 
                 noise_result = apply_noise(frame, self._rng, cfg.noise)

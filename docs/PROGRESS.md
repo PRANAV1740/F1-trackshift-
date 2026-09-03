@@ -24,8 +24,8 @@ been verified.
 | 9 | Strategy engine | done | Explicit objective function (projected time + risk + failure penalty), VSC/SC-aware pit loss, real off-by-one-lap bug found and fixed. 143/143 tests passing |
 | 10 | Compound selection | done (core) | Candidate-compound comparison via the same objective function shipped as part of Phase 9's engine (comparing PIT->SOFT/MEDIUM/HARD is literally what `decide()` does) rather than a separate parallel module, to avoid duplicate logic. Track-temperature/weather/traffic/opponent-strategy refinements are honestly pending Phase 13/14 -- not yet factored in |
 | 11 | Position / outcome prediction | done | Real Monte Carlo model, honestly reports insufficient_opponent_data in live use pending Phase 14. 154/154 tests passing |
-| 12 | Safety car / VSC | todo | |
-| 13 | Weather | todo | |
+| 12 | Safety car / VSC | done | Detection (Phase 8) + pit-loss modeling (Phase 9) already covered; added simulator FlagPeriod injection + full end-to-end reactive-loop test. 171/171 tests passing |
+| 13 | Weather | done | Rain-probability trend detection (linear regression on observed history) feeding RAIN_INCOMING; simulator WeatherTransition injection. No live weather feed claimed. 171/171 tests passing |
 | 14 | Opponent intelligence | todo | |
 | 15 | Racing-line intelligence | todo | |
 | 16 | Radio intelligence | todo | |

@@ -228,6 +228,26 @@ elsewhere in the docs.
   header. Caught by grepping section headers before moving on; fixed by
   merging the split content back together.
 
+## Phases 12-13 — SC/VSC and weather
+
+- 171/171 tests passing, up from 154. New: simulator SC/VSC injection
+  (flags/track-state/speed-cap correctly scoped to the injected lap range
+  and reverting after), weather-transition injection, weather trend
+  detection (rising/falling/stable rain probability, confidence growing
+  with history length), and `RAIN_INCOMING` edge-triggering.
+- **The most important test added this phase is
+  `tests/test_sc_vsc_integration.py`**, which runs the actual pipeline
+  (not mocked components) with an injected SC period and asserts: exactly
+  one `SAFETY_CAR` event fires (on the rising edge), and the strategy
+  engine's decision object identity changes on that same frame — proving
+  the "must react automatically" requirement end-to-end rather than
+  trusting that Phase 8's edge-triggering and Phase 9's flag-triggered
+  reassessment compose correctly just because each passed its own unit
+  tests in isolation.
+- No new bugs found this round — both pieces (event detection, strategy
+  flag-triggering) already had their own correctness established in
+  Phases 8-9; this phase's job was proving the composition, which held.
+
 ## What's intentionally NOT claimed
 
 - No claim of real F1 telemetry access or FIA integration.

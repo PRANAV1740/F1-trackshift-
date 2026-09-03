@@ -428,14 +428,36 @@ distribution — the machinery itself is validated with synthetic
 multi-opponent test fixtures and ready for Phase 14 to feed real data in
 via an injectable `opponent_source`.
 
+## SC/VSC and weather (Phases 12/13)
+
+Phase 12 (SC/VSC) is substantially the union of Phase 8 (`SAFETY_CAR`/
+`VSC` event detection) and Phase 9 (event-aware pit-loss reduction as a
+term in the strategy objective) — there's no separate SC/VSC module.
+What Phase 12 actually added: `simulator/generator/core.py::FlagPeriod`
+so SC/VSC can be injected into generated telemetry (setting flags/track
+state and capping speed), and `tests/test_sc_vsc_integration.py`, which
+proves the full reactive loop end-to-end — an injected SC period produces
+exactly one `SAFETY_CAR` event and an immediate strategy reassessment on
+that same frame, not a unit-level claim about either piece in isolation.
+
+Phase 13 (`backend/weather`) tracks the actual trend in observed
+`rain_probability` (linear regression over a bounded per-car history) to
+detect wetting/drying transitions, feeding `RAIN_INCOMING`.
+`RaceTelemetry.weather`/`rain_probability` is already the clean
+integration point for a real weather feed (any adapter can populate it) —
+there is no separate weather-specific adapter, and none is claimed.
+`simulator/generator/core.py::WeatherTransition` injects weather changes
+into generated telemetry for scenario/demo purposes.
+
 ## What is NOT built yet
 
-Past Phase 11: racing-line/opponent/weather intelligence, compound
-selection's remaining refinements (track temp/weather/traffic/opponent-
-strategy factors), radio pipeline, both dashboards,
-evaluation/backtesting, and the public API/WS surface. Each has a stub
-`README.md` in its directory stating this and what it will own — see the
-repository layout above and `docs/PROGRESS.md` for current status.
+Past Phase 13: racing-line/opponent intelligence, compound selection's
+remaining refinements (traffic/opponent-strategy factors — track
+temperature and weather are now available inputs but not yet factored into
+compound choice), radio pipeline, both dashboards, evaluation/backtesting,
+and the public API/WS surface. Each has a stub `README.md` in its
+directory stating this and what it will own — see the repository layout
+above and `docs/PROGRESS.md` for current status.
 
 No claim is made anywhere in this repository of real F1 telemetry access,
 FIA system integration, or production readiness. Interfaces are designed so

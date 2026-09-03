@@ -8,6 +8,7 @@ from backend.events.detector import DetectionThresholds, EventDetectionEngine
 from backend.events.model import DETECTOR_STATUS, EventType
 from backend.state.baseline import BaselineTrajectory
 from backend.state.race_state import RaceState
+from backend.weather.model import WeatherAssessment
 
 BASE_TS = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
 
@@ -116,6 +117,41 @@ def test_free_pit_window_fires_on_entering_window_not_while_inside():
 
     state.current_lap = 7
     assert engine.detect(state) == []  # still inside window -- no re-fire
+
+
+def _wx(trend, transitioning, confidence=0.8):
+    return WeatherAssessment(car_id="44", lap=5, weather=None, rain_probability=0.4, trend_per_lap=trend, transitioning=transitioning, confidence=confidence)
+
+
+def test_rain_incoming_fires_on_wetting_trend_rising_edge():
+    engine = EventDetectionEngine()
+    state = _state()
+
+    assert engine.detect(state, weather_assessment=_wx(trend=0.1, transitioning=True)) != []
+    events = engine.recent_events("44")
+    assert len(events) == 1
+    assert events[0].event_type == EventType.RAIN_INCOMING
+
+    # held steady -- no re-fire
+    assert engine.detect(state, weather_assessment=_wx(trend=0.1, transitioning=True)) == []
+
+
+def test_rain_incoming_does_not_fire_for_drying_trend():
+    engine = EventDetectionEngine()
+    state = _state()
+    assert engine.detect(state, weather_assessment=_wx(trend=-0.1, transitioning=True)) == []
+
+
+def test_rain_incoming_does_not_fire_when_not_transitioning():
+    engine = EventDetectionEngine()
+    state = _state()
+    assert engine.detect(state, weather_assessment=_wx(trend=0.01, transitioning=False)) == []
+
+
+def test_rain_incoming_handles_missing_weather_assessment_gracefully():
+    engine = EventDetectionEngine()
+    state = _state()
+    assert engine.detect(state) == []  # no weather_assessment passed at all
 
 
 def test_recent_events_accumulates_and_is_bounded():

@@ -21,10 +21,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from typing import Optional
 
 from backend.events.model import EventSeverity, EventType, RaceEvent
 from backend.observability.logging import get_logger
 from backend.state.race_state import RaceState
+from backend.weather.model import WeatherAssessment
 
 log = get_logger("events.detector")
 
@@ -44,6 +46,7 @@ class _CarMemory:
     degradation_accelerating: bool = False
     pace_drop_active: bool = False
     in_pit_window: bool = False
+    rain_incoming_active: bool = False
 
 
 class EventDetectionEngine:
@@ -56,7 +59,7 @@ class EventDetectionEngine:
     def recent_events(self, car_id: str) -> list[RaceEvent]:
         return list(self._history.get(car_id, []))
 
-    def detect(self, state: RaceState) -> list[RaceEvent]:
+    def detect(self, state: RaceState, weather_assessment: Optional[WeatherAssessment] = None) -> list[RaceEvent]:
         mem = self._memory.setdefault(state.car_id, _CarMemory())
         events: list[RaceEvent] = []
         now = state.last_updated or datetime.now(timezone.utc)
@@ -65,6 +68,7 @@ class EventDetectionEngine:
         events += self._detect_tyre_events(state, mem, now)
         events += self._detect_pace_events(state, mem, now)
         events += self._detect_pit_window_events(state, mem, now)
+        events += self._detect_weather_events(state, mem, now, weather_assessment)
 
         if events:
             bucket = self._history.setdefault(state.car_id, [])
@@ -202,4 +206,34 @@ class EventDetectionEngine:
                 )
             )
         mem.in_pit_window = in_window
+        return events
+
+    def _detect_weather_events(
+        self, state: RaceState, mem: _CarMemory, now: datetime, weather_assessment: Optional[WeatherAssessment]
+    ) -> list[RaceEvent]:
+        events = []
+        wetting = (
+            weather_assessment is not None
+            and weather_assessment.transitioning
+            and weather_assessment.trend_per_lap is not None
+            and weather_assessment.trend_per_lap > 0
+        )
+        if wetting and not mem.rain_incoming_active:
+            events.append(
+                RaceEvent(
+                    event_type=EventType.RAIN_INCOMING,
+                    car_id=state.car_id,
+                    lap=state.current_lap,
+                    timestamp=now,
+                    severity=EventSeverity.WARNING,
+                    confidence=weather_assessment.confidence,
+                    evidence={
+                        "rain_probability": weather_assessment.rain_probability,
+                        "trend_per_lap": weather_assessment.trend_per_lap,
+                    },
+                    affected_systems=("strategy", "pit_wall", "hq"),
+                    message=f"Rain probability rising at {weather_assessment.trend_per_lap:.2f}/lap.",
+                )
+            )
+        mem.rain_incoming_active = wetting
         return events
