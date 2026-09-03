@@ -248,6 +248,71 @@ elsewhere in the docs.
   flag-triggering) already had their own correctness established in
   Phases 8-9; this phase's job was proving the composition, which held.
 
+## Phase 14 — opponent intelligence (first multi-car simulation)
+
+- 199/199 tests passing, up from 196. New coverage: `RaceOrderTracker`
+  (leader-by-progress ranking, position/gap assignment, non-adjacent gap
+  queries), `OpponentSummary`/`pit_probability`/undercut-overcut
+  classification (including the "not applicable" cases — an opponent
+  behind can't overcut us, one ahead can't undercut us from our
+  perspective), the `OpponentIntelligenceEstimator` no-op on a single
+  tracked car, six new opponent-aware event detectors (each edge-triggered
+  per opponent, with memory correctly pruned when an opponent drops out of
+  the tracked set), and `UNDERCUT`/`OVERCUT` relabeling in the strategy
+  engine (including the "no relabel without a qualifying opponent" case).
+- **Two real, significant bugs found and fixed while building the 3-car
+  end-to-end test — not tolerance adjustments, genuine defects:**
+  1. **Asyncio scheduling fairness.** The first version of the multi-car
+     test showed one car (by whichever adapter `asyncio.gather` happened to
+     schedule first) at lap 9 while the other two sat at lap 5, despite no
+     pace advantage existing in the generated data. Root cause:
+     `SimulatorAdapter.stream()` in non-realtime mode has no `await` point
+     in the common case (no delayed/dropped packet that tick), so a single
+     adapter's task can run to near-completion before `asyncio.gather`'s
+     other tasks get *any* turn — cooperative scheduling only switches
+     tasks at actual await points. This is a real correctness issue for
+     any multi-car deployment via `IngestionService`, not just a test
+     artifact. Fixed with an unconditional `await asyncio.sleep(0)` per
+     frame when not in realtime mode.
+  2. **Timestamp domain mismatch, recurrence of an already-fixed bug
+     class.** After fixing (1), gaps between cars still computed as
+     exactly `0.0` even with a clear, deliberate pace differential
+     (staggered `starting_fuel_kg`, ~15-20s expected gap by lap 5).
+     Direct inspection showed `RaceOrderTracker`'s "elapsed time within
+     the current lap" computing as **~244 days** — because it compared
+     `current_lap_start_ts` (always derived from `source_timestamp`, the
+     fixed-anchor simulated clock) against `ingest_timestamp` (real
+     wall-clock time, i.e. whenever the test happened to run). This is
+     precisely the same class of bug already found and fixed once in
+     Phase 2 (`SimulatorAdapter`'s realtime-anchor handling) — it
+     recurred because that lesson wasn't front-of-mind while writing new
+     timestamp-comparing code in a different module. Fixed by comparing
+     `source_timestamp` against `source_timestamp` consistently.
+  3. **A test-methodology dead end, documented rather than hidden:**
+     while chasing (2), `v_max_kph` was tried as the pace-differentiation
+     knob for the 3-car test and found nearly useless (a 40 kph spread
+     produced under 1 second of lap-time difference) — this synthetic
+     track's corner spacing means most straights aren't long enough for a
+     car to approach anywhere near `v_max` before the next braking zone,
+     so corner geometry dominates lap time, not top speed. Confirmed
+     directly (`build_speed_profile` at v_max 300/320/340 → 105.58/105.07/
+     104.83s). Switched to `starting_fuel_kg`, which acts through the
+     ground-truth fuel-effect model directly and produces a robust,
+     controllable pace differential. Documented in the test itself so a
+     future reader doesn't repeat the same dead end.
+  4. Even the FINAL-frame comparison in the test needed care: every car's
+     last recorded frame is at (or capped near) the very end of its final
+     lap, where the progress-fraction model's `0.999` cap converges for
+     every car finishing normally — gaps at that instant are artificially
+     compressed regardless of true pace differences (a real, documented
+     property of the model's edge behavior, not a bug). The test checks a
+     mid-race snapshot instead, for both the gap-positivity assertion and
+     the position-prediction-unlocked assertion (the latter has its own
+     edge case: `remaining_laps` hits exactly 0 for every car on its final
+     frame, correctly triggering the "race distance exhausted" fallback
+     and resetting `chosen_projected_time_s` to `None` — also not a bug,
+     also required a mid-race check instead).
+
 ## What's intentionally NOT claimed
 
 - No claim of real F1 telemetry access or FIA integration.

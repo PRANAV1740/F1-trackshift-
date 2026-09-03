@@ -449,15 +449,47 @@ there is no separate weather-specific adapter, and none is claimed.
 `simulator/generator/core.py::WeatherTransition` injects weather changes
 into generated telemetry for scenario/demo purposes.
 
+## Opponent intelligence (`backend/opponents`, Phase 14) — the first multi-car capability
+
+Everything before this phase ran one `SimulatorAdapter` at a time.
+`RaceOrderTracker` computes position/gap continuously from each car's
+lap-progress fraction (a documented approximation — the schema only has
+3-way sector resolution, not continuous distance). Everything else about
+an opponent (compound, tyre age, pace, degradation) is NOT re-derived —
+it's read straight off that opponent's own `RaceState`, since every
+per-car estimator (Phases 4-6) is already keyed by `car_id`.
+`classify_pit_timing_opportunity()` is a documented, inspectable heuristic
+(not a fitted/calibrated model) shared by `backend/events`' `UNDERCUT_OPPORTUNITY`/
+`OVERCUT_OPPORTUNITY` detectors and `backend/strategy`'s UNDERCUT/OVERCUT
+decision relabeling, so the two never disagree. Phase 14 also finally
+unlocks Phase 11's Monte Carlo position prediction with real opponent
+data (`backend/opponents/prediction.py`).
+
+Six more event types went live this phase (`OPPONENT_PITTING`,
+`UNDERCUT_OPPORTUNITY`, `OVERCUT_OPPORTUNITY`, `POSITION_THREAT`,
+`POSITION_OPPORTUNITY`, `TRAFFIC_RELEASE`), bringing the event engine to
+13/15 detectable.
+
+**Two real, significant bugs were found and fixed while building this
+phase's end-to-end multi-car test** (full account in `docs/VALIDATION.md`
+and `backend/opponents/README.md`): (1) concurrent `SimulatorAdapter`s in
+non-realtime mode had no yield point in the common case, so `asyncio.gather`
+let one adapter's task monopolize the event loop and run far ahead of its
+siblings — fixed with an unconditional per-frame `await asyncio.sleep(0)`
+when not in realtime mode; (2) `RaceOrderTracker` compared a
+`source_timestamp`-derived value against `ingest_timestamp` (real wall
+clock) — the same class of time-domain bug already fixed once in Phase 2,
+recurring in new code. Both are exactly the kind of finding this project's
+honest-validation practice is meant to surface.
+
 ## What is NOT built yet
 
-Past Phase 13: racing-line/opponent intelligence, compound selection's
-remaining refinements (traffic/opponent-strategy factors — track
-temperature and weather are now available inputs but not yet factored into
-compound choice), radio pipeline, both dashboards, evaluation/backtesting,
-and the public API/WS surface. Each has a stub `README.md` in its
-directory stating this and what it will own — see the repository layout
-above and `docs/PROGRESS.md` for current status.
+Past Phase 14: racing-line intelligence, compound selection's remaining
+refinements (weather/track-temperature factors are available inputs but
+not yet used in compound choice), radio pipeline, both dashboards,
+evaluation/backtesting, and the public API/WS surface. Each has a stub
+`README.md` in its directory stating this and what it will own — see the
+repository layout above and `docs/PROGRESS.md` for current status.
 
 No claim is made anywhere in this repository of real F1 telemetry access,
 FIA system integration, or production readiness. Interfaces are designed so

@@ -107,6 +107,20 @@ class SimulatorAdapter(SourceAdapter):
         last_source_ts: Optional[object] = None
 
         for frame in generator.frames():
+            if not self._realtime:
+                # Non-realtime mode has no other await point in the common
+                # case (no delay/drop this tick), so without this, a single
+                # adapter's task can monopolize the event loop and run to
+                # (near) completion before a concurrently-gathered sibling
+                # adapter (a second car, in multi-car simulation) gets ANY
+                # turn -- asyncio only switches cooperative tasks at actual
+                # await points. Found via a multi-car test where one car's
+                # RaceState was 4 laps ahead of the others' despite no such
+                # pace advantage existing in the generated data -- a
+                # scheduling artifact, not a race dynamic. See
+                # docs/VALIDATION.md.
+                await asyncio.sleep(0)
+
             decision = decide_packet_fate(self._transport_rng, self._config.noise)
 
             if self._realtime and last_source_ts is not None:

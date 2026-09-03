@@ -90,12 +90,23 @@ Given the winning candidate:
 - **Wins on staying out:** `EXTEND` if `remaining_tyre_life_laps` (Phase 5)
   is at least `extend_remaining_life_threshold_laps` (default 5), else
   `STAY_OUT`.
-- `UNDERCUT` / `OVERCUT` / `ATTACK` / `DEFEND` remain declared in
-  `StrategyDecisionType` (the vocabulary is complete from the start, same
-  pattern as `backend/events`) but are **never selected yet** — they need
-  opponent-relative reasoning that only exists once Phase 14 (opponent
-  intelligence) lands. Extending `decide()` to consider them is Phase 14's
-  job, not a rewrite of this one.
+- **Relabeled `UNDERCUT`/`OVERCUT` (Phase 14):** when the winning candidate
+  pits, `decide()` looks at the closest opponent ahead in
+  `state.opponent_threats` (`backend/opponents`) and classifies the
+  situation via `classify_pit_timing_opportunity()` — the same function
+  `backend/events` uses for its matching event, so the two agree by
+  construction. If that opponent is close and not likely to react (low pit
+  probability), the decision becomes `UNDERCUT`; if they're close and
+  likely pitting soon while our own pit probability is low, it becomes
+  `OVERCUT`. Either way the underlying score (projected time + risk +
+  failure penalty) that made pitting the right call is unchanged — only
+  the label and `reasons` are enriched with the opponent context. With no
+  qualifying opponent, the decision stays plain `PIT`/`PIT_NEXT_LAP`.
+- `ATTACK` / `DEFEND` remain declared in `StrategyDecisionType` (the
+  vocabulary is complete from the start, same pattern as `backend/events`)
+  but are **never selected** — they're on-track racing-line/battle
+  decisions, not pit-timing ones, and belong to Phase 15 (racing-line
+  intelligence), not this module.
 
 ## Confidence
 

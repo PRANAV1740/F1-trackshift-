@@ -101,6 +101,7 @@ class RaceStateEstimator:
         state.latest_frame = frame
 
         state.current_lap = frame.lap
+        state.current_lap_start_ts = self._lap_start_ts.get(state.car_id)
         state.current_sector = frame.sector
         state.position = frame.position
         state.current_speed_kph = frame.speed_kph

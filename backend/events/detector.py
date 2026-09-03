@@ -25,7 +25,9 @@ from typing import Optional
 
 from backend.events.model import EventSeverity, EventType, RaceEvent
 from backend.observability.logging import get_logger
+from backend.opponents.model import PitTimingOpportunity, classify_pit_timing_opportunity, pit_probability
 from backend.state.race_state import RaceState
+from backend.telemetry.schema import PitStatus
 from backend.weather.model import WeatherAssessment
 
 log = get_logger("events.detector")
@@ -36,6 +38,11 @@ class DetectionThresholds:
     tyre_cliff_probability: float = 0.4
     degradation_acceleration_s_per_lap2: float = 0.02
     pace_drop_s: float = 0.5
+    battle_gap_s: float = 3.0  # close enough to be a live position battle
+    opponent_pit_probability_committed: float = 0.6  # "about to pit" for undercut/overcut logic
+    opponent_pit_probability_uncommitted: float = 0.25  # "not about to pit"
+    traffic_gap_s: float = 1.5  # closer than this counts as being held up
+    traffic_release_gap_s: float = 4.0  # gap must open back up past this to count as "released"
 
 
 @dataclass
@@ -47,6 +54,12 @@ class _CarMemory:
     pace_drop_active: bool = False
     in_pit_window: bool = False
     rain_incoming_active: bool = False
+    opponent_pit_status: dict[str, object] = field(default_factory=dict)
+    undercut_opportunity_active: set = field(default_factory=set)
+    overcut_opportunity_active: set = field(default_factory=set)
+    position_threat_active: set = field(default_factory=set)
+    position_opportunity_active: set = field(default_factory=set)
+    in_traffic_of: set = field(default_factory=set)
 
 
 class EventDetectionEngine:
@@ -69,6 +82,7 @@ class EventDetectionEngine:
         events += self._detect_pace_events(state, mem, now)
         events += self._detect_pit_window_events(state, mem, now)
         events += self._detect_weather_events(state, mem, now, weather_assessment)
+        events += self._detect_opponent_events(state, mem, now)
 
         if events:
             bucket = self._history.setdefault(state.car_id, [])
@@ -237,3 +251,125 @@ class EventDetectionEngine:
             )
         mem.rain_incoming_active = wetting
         return events
+
+    def _detect_opponent_events(self, state: RaceState, mem: _CarMemory, now: datetime) -> list[RaceEvent]:
+        """Uses `state.opponent_threats` (Phase 14, `backend/opponents`).
+
+        Undercut/overcut opportunity are both about a rival AHEAD of us --
+        that's who you're trying to gain track position on. They're
+        differentiated by who pits first: if the rival's own pit
+        probability is LOW (they're not about to react), pitting now gives
+        US the jump -- an undercut opportunity. If their pit probability is
+        HIGH (they're about to stop) while OUR OWN pit probability is low
+        (we can afford to stay out), letting them pit first and extending
+        past them is an overcut opportunity. Position threat/opportunity
+        are simpler: a close rival behind is a threat to our position, a
+        close rival ahead is a passing opportunity, gauged purely by gap
+        (see `DetectionThresholds.battle_gap_s`).
+        """
+
+        events: list[RaceEvent] = []
+        threshold = self._thresholds
+        own_pit_probability = pit_probability(state)
+
+        seen_opponents = set(state.opponent_threats.keys())
+
+        for opponent_id, summary in state.opponent_threats.items():
+            previous_status = mem.opponent_pit_status.get(opponent_id)
+            if summary.pit_status == PitStatus.ENTERING_PIT and previous_status != PitStatus.ENTERING_PIT:
+                events.append(
+                    RaceEvent(
+                        event_type=EventType.OPPONENT_PITTING,
+                        car_id=state.car_id,
+                        lap=state.current_lap,
+                        timestamp=now,
+                        severity=EventSeverity.WARNING,
+                        confidence=0.9,
+                        evidence={"opponent_car_id": opponent_id},
+                        affected_systems=("strategy", "pit_wall"),
+                        message=f"Opponent {opponent_id} is entering the pits.",
+                    )
+                )
+            mem.opponent_pit_status[opponent_id] = summary.pit_status
+
+            close = summary.gap_magnitude_s is not None and summary.gap_magnitude_s <= threshold.battle_gap_s
+
+            opportunity = classify_pit_timing_opportunity(
+                summary,
+                own_pit_probability,
+                gap_threshold_s=threshold.battle_gap_s,
+                opponent_uncommitted_threshold=threshold.opponent_pit_probability_uncommitted,
+                opponent_committed_threshold=threshold.opponent_pit_probability_committed,
+            )
+            undercut_now = opportunity == PitTimingOpportunity.UNDERCUT
+            overcut_now = opportunity == PitTimingOpportunity.OVERCUT
+
+            if undercut_now and opponent_id not in mem.undercut_opportunity_active:
+                events.append(self._opponent_event(EventType.UNDERCUT_OPPORTUNITY, state, now, opponent_id, summary))
+            if undercut_now:
+                mem.undercut_opportunity_active.add(opponent_id)
+            else:
+                mem.undercut_opportunity_active.discard(opponent_id)
+
+            if overcut_now and opponent_id not in mem.overcut_opportunity_active:
+                events.append(self._opponent_event(EventType.OVERCUT_OPPORTUNITY, state, now, opponent_id, summary))
+            if overcut_now:
+                mem.overcut_opportunity_active.add(opponent_id)
+            else:
+                mem.overcut_opportunity_active.discard(opponent_id)
+
+            if not summary.is_ahead and close:
+                if opponent_id not in mem.position_threat_active:
+                    events.append(self._opponent_event(EventType.POSITION_THREAT, state, now, opponent_id, summary))
+                mem.position_threat_active.add(opponent_id)
+            else:
+                mem.position_threat_active.discard(opponent_id)
+
+            if summary.is_ahead and close:
+                if opponent_id not in mem.position_opportunity_active:
+                    events.append(self._opponent_event(EventType.POSITION_OPPORTUNITY, state, now, opponent_id, summary))
+                mem.position_opportunity_active.add(opponent_id)
+            else:
+                mem.position_opportunity_active.discard(opponent_id)
+
+            in_traffic = summary.is_ahead and summary.gap_magnitude_s is not None and summary.gap_magnitude_s <= threshold.traffic_gap_s
+            released = (
+                opponent_id in mem.in_traffic_of
+                and summary.gap_magnitude_s is not None
+                and summary.gap_magnitude_s >= threshold.traffic_release_gap_s
+            )
+            if released:
+                events.append(self._opponent_event(EventType.TRAFFIC_RELEASE, state, now, opponent_id, summary))
+                mem.in_traffic_of.discard(opponent_id)
+            elif in_traffic:
+                mem.in_traffic_of.add(opponent_id)
+
+        # Drop memory for opponents no longer tracked (e.g. lapped out of range).
+        for tracked_set in (
+            mem.undercut_opportunity_active,
+            mem.overcut_opportunity_active,
+            mem.position_threat_active,
+            mem.position_opportunity_active,
+            mem.in_traffic_of,
+        ):
+            tracked_set.intersection_update(seen_opponents)
+
+        return events
+
+    @staticmethod
+    def _opponent_event(event_type: EventType, state: RaceState, now: datetime, opponent_id: str, summary) -> RaceEvent:
+        return RaceEvent(
+            event_type=event_type,
+            car_id=state.car_id,
+            lap=state.current_lap,
+            timestamp=now,
+            severity=EventSeverity.INFO,
+            confidence=0.5,
+            evidence={
+                "opponent_car_id": opponent_id,
+                "gap_magnitude_s": summary.gap_magnitude_s,
+                "opponent_pit_probability": summary.pit_probability,
+            },
+            affected_systems=("strategy", "pit_wall"),
+            message=f"{event_type.value} vs {opponent_id} (gap {summary.gap_magnitude_s}).",
+        )

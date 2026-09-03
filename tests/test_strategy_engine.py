@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import pytest
 
 from backend.normalization.stages import default_pipeline
+from backend.opponents.model import OpponentSummary, ThreatLevel
 from backend.pace.estimator import PaceIntelligenceEstimator
 from backend.state.estimator import RaceStateEstimator
 from backend.state.race_state import RaceState
@@ -66,6 +67,70 @@ def test_imminent_cliff_triggers_a_pit_decision():
     assert decision.window is not None
     assert 0.0 <= decision.confidence <= 1.0
     assert decision.reasons and decision.risks and decision.invalidation_conditions
+
+
+def _opponent_summary(pit_probability, gap=1.5):
+    return OpponentSummary(
+        car_id="1", position=4, compound=TyreCompound.MEDIUM, tyre_age_laps=10, current_pace_s=90.0,
+        degradation_rate_s_per_lap=0.03, pit_probability=pit_probability, pit_status=None,
+        gap_magnitude_s=gap, is_ahead=True, undercut_threat=ThreatLevel.NONE, overcut_threat=ThreatLevel.NONE,
+    )
+
+
+def test_pit_decision_relabeled_as_undercut_when_opponent_ahead_not_committed():
+    state = _state(
+        current_lap=20, tyre_age_laps=19, tyre_cliff_probability=0.9,
+        opponent_threats={"1": _opponent_summary(pit_probability=0.1)},
+    )
+    tyre_estimator = TyreDegradationEstimator()
+    tyre_estimator.set_estimate(
+        "44",
+        DegradationEstimate(
+            compound=TyreCompound.MEDIUM, n_observations=15, base_pace_s=90.0,
+            degradation_rate_s_per_lap=0.05, cliff_lap=19, cliff_coefficient_s_per_lap2=0.15, residual_std_s=0.1,
+        ),
+    )
+
+    decision = decide(state, tyre_estimator, config=StrategyConfig(race_total_laps=50))
+
+    assert decision.decision == StrategyDecisionType.UNDERCUT
+    assert any("undercut" in r.lower() for r in decision.reasons)
+
+
+def test_pit_decision_relabeled_as_overcut_when_opponent_ahead_about_to_pit():
+    state = _state(
+        current_lap=20, tyre_age_laps=19, tyre_cliff_probability=0.05,  # our own pit probability low
+        opponent_threats={"1": _opponent_summary(pit_probability=0.9)},
+    )
+    tyre_estimator = TyreDegradationEstimator()
+    tyre_estimator.set_estimate(
+        "44",
+        DegradationEstimate(
+            compound=TyreCompound.MEDIUM, n_observations=15, base_pace_s=90.0,
+            degradation_rate_s_per_lap=0.05, cliff_lap=19, cliff_coefficient_s_per_lap2=0.15, residual_std_s=0.1,
+        ),
+    )
+
+    decision = decide(state, tyre_estimator, config=StrategyConfig(race_total_laps=50))
+
+    assert decision.decision == StrategyDecisionType.OVERCUT
+    assert any("overcut" in r.lower() for r in decision.reasons)
+
+
+def test_pit_decision_stays_plain_pit_without_relevant_opponent_data():
+    state = _state(current_lap=20, tyre_age_laps=19, tyre_cliff_probability=0.9, opponent_threats={})
+    tyre_estimator = TyreDegradationEstimator()
+    tyre_estimator.set_estimate(
+        "44",
+        DegradationEstimate(
+            compound=TyreCompound.MEDIUM, n_observations=15, base_pace_s=90.0,
+            degradation_rate_s_per_lap=0.05, cliff_lap=19, cliff_coefficient_s_per_lap2=0.15, residual_std_s=0.1,
+        ),
+    )
+
+    decision = decide(state, tyre_estimator, config=StrategyConfig(race_total_laps=50))
+
+    assert decision.decision in (StrategyDecisionType.PIT, StrategyDecisionType.PIT_NEXT_LAP)
 
 
 def test_healthy_fresh_tyre_over_a_short_remaining_distance_stays_out():

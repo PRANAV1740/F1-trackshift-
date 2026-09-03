@@ -10,11 +10,16 @@ with a naive placeholder (see `StrategyDecision.position_forecast_is_naive`)
 because a real answer needs Phase 11 (position prediction) and Phase 14
 (opponent intelligence), neither built yet.
 
-`UNDERCUT`/`OVERCUT`/`ATTACK`/`DEFEND` remain in `StrategyDecisionType` (the
-decision vocabulary is declared complete from the start, same pattern as
-`backend/events`), but `decide()` never selects them yet -- they require
-opponent-relative reasoning that doesn't exist until Phase 14. Extending
-`decide()` to consider them is Phase 14's job, not a rewrite of this one.
+`UNDERCUT`/`OVERCUT` are relabelings of an already-PIT-favoring objective
+decision, applied when Phase 14's opponent data (`OpponentSummary`) shows a
+matching close, ahead opponent whose own pit likelihood makes pitting now
+a genuine undercut (they're not about to react) or overcut (they're about
+to pit, we can outlast them) rather than a plain tyre-life-driven stop --
+the underlying PIT/PIT_NEXT_LAP economics from the objective function are
+unchanged; only the label and reasons are enriched. `ATTACK`/`DEFEND`
+remain declared but unselected -- those are on-track racing-line/battle
+decisions, not pit-timing ones, and belong to Phase 15 (racing-line
+intelligence), not this module.
 """
 
 from __future__ import annotations
@@ -23,6 +28,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
+from backend.opponents.model import PitTimingOpportunity, classify_pit_timing_opportunity, pit_probability
 from backend.pace.estimator import PaceIntelligenceEstimator
 from backend.state.baseline import estimate_fuel_burn_rate
 from backend.state.race_state import RaceState
@@ -184,6 +190,26 @@ def decide(
             else (state.current_lap + 1, min(state.current_lap + 3, config.race_total_laps))
         )
         invalidations.append("Invalidated if the degradation trend reverses (e.g. cooler track, lower fuel-burn-off benefit than assumed) before pit entry.")
+
+        # Relabel as UNDERCUT/OVERCUT when Phase 14's opponent data shows a
+        # matching close, ahead rival -- the underlying pit-now economics
+        # above are unchanged, only the label and reasons are enriched.
+        # Same classifier backend/events uses for the equivalent event, so
+        # the two never disagree on what counts as an undercut/overcut.
+        own_pit_probability = pit_probability(state)
+        closest_ahead = min(
+            (s for s in state.opponent_threats.values() if s.is_ahead and s.gap_magnitude_s is not None),
+            key=lambda s: s.gap_magnitude_s,
+            default=None,
+        )
+        if closest_ahead is not None:
+            opportunity = classify_pit_timing_opportunity(closest_ahead, own_pit_probability)
+            if opportunity == PitTimingOpportunity.UNDERCUT:
+                decision_type = StrategyDecisionType.UNDERCUT
+                reasons.append(f"Opponent {closest_ahead.car_id} ahead ({closest_ahead.gap_magnitude_s:.1f}s) isn't likely to pit yet -- undercut opportunity.")
+            elif opportunity == PitTimingOpportunity.OVERCUT:
+                decision_type = StrategyDecisionType.OVERCUT
+                reasons.append(f"Opponent {closest_ahead.car_id} ahead ({closest_ahead.gap_magnitude_s:.1f}s) is likely pitting soon while we can extend -- overcut opportunity.")
     else:
         compound = None
         window = None

@@ -26,7 +26,7 @@ been verified.
 | 11 | Position / outcome prediction | done | Real Monte Carlo model, honestly reports insufficient_opponent_data in live use pending Phase 14. 154/154 tests passing |
 | 12 | Safety car / VSC | done | Detection (Phase 8) + pit-loss modeling (Phase 9) already covered; added simulator FlagPeriod injection + full end-to-end reactive-loop test. 171/171 tests passing |
 | 13 | Weather | done | Rain-probability trend detection (linear regression on observed history) feeding RAIN_INCOMING; simulator WeatherTransition injection. No live weather feed claimed. 171/171 tests passing |
-| 14 | Opponent intelligence | todo | |
+| 14 | Opponent intelligence | done | First genuine multi-car simulation. RaceOrderTracker, OpponentSummary, undercut/overcut classifier, 6 new live events, UNDERCUT/OVERCUT wired into strategy, position prediction unlocked. Two significant bugs found+fixed (asyncio scheduling fairness, timestamp domain mismatch). 199/199 tests passing |
 | 15 | Racing-line intelligence | todo | |
 | 16 | Radio intelligence | todo | |
 | 17 | Human/AI disagreement | todo | |

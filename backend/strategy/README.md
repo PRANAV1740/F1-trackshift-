@@ -14,10 +14,20 @@ into `RaceState.current_strategy`, reassessing on lap completion or an
 SC/VSC flag change.
 
 `StrategyDecisionType` declares the full vocabulary (`PIT`, `STAY_OUT`,
-`PIT_NEXT_LAP`, `EXTEND`, `UNDERCUT`, `OVERCUT`, `ATTACK`, `DEFEND`), but
-the last four are never selected yet — they need Phase 14's opponent
-intelligence. `expected_position`/`position_gain` are an explicitly-flagged
-naive carry-forward pending Phase 11/14.
+`PIT_NEXT_LAP`, `EXTEND`, `UNDERCUT`, `OVERCUT`, `ATTACK`, `DEFEND`).
+
+**Update (Phase 14): `UNDERCUT`/`OVERCUT` are now selected.** When the
+objective already favors pitting, `decide()` checks the closest tracked
+opponent ahead via the same `classify_pit_timing_opportunity()` classifier
+`backend/events` uses for its matching event — if they're close and not
+about to react, the decision relabels to `UNDERCUT`; if they're close and
+about to pit while we aren't, it relabels to `OVERCUT`. The underlying
+pit-now economics are unchanged either way; only the label and reasons are
+enriched. `ATTACK`/`DEFEND` remain declared but unselected — those are
+on-track racing-line/battle decisions, not pit-timing ones, and belong to
+Phase 15 (racing-line intelligence). `expected_position`/`position_gain`
+remain an explicitly-flagged naive carry-forward pending Phase 11's full
+integration.
 
 A real off-by-one-lap bug in the objective's horizon accounting was found
 and fixed during this phase's own test-writing — see

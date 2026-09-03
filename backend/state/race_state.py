@@ -17,6 +17,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
+    from backend.opponents.model import OpponentSummary
     from backend.prediction.model import PositionPrediction
     from backend.state.baseline import BaselineTrajectory
     from backend.strategy.engine import StrategyDecision
@@ -79,6 +80,7 @@ class RaceState:
     latest_frame: Optional[RaceTelemetry] = None
 
     current_lap: int = 0
+    current_lap_start_ts: Optional[datetime] = None
     current_sector: Optional[int] = None
     position: Optional[int] = None
     current_speed_kph: Optional[float] = None
@@ -104,7 +106,7 @@ class RaceState:
     gap_behind_s: Optional[float] = None
     opponents_last_seen: dict[str, OpponentState] = field(default_factory=dict)
     # --- populated by Phase 14 (opponent intelligence) ---
-    opponent_threats: Optional[dict] = None
+    opponent_threats: dict[str, "OpponentSummary"] = field(default_factory=dict)
 
     weather: Optional[WeatherState] = None
     rain_probability: Optional[float] = None

@@ -43,14 +43,14 @@ DETECTOR_STATUS: dict[EventType, str] = {
     EventType.PACE_DROP: "live (Phase 8, from backend/pace's pace_delta)",
     EventType.FREE_PIT_WINDOW: "live (Phase 8, from backend/state's baseline recommended_pit_window)",
     EventType.RAIN_INCOMING: "live (Phase 13, from backend/weather's rain-probability trend)",
-    EventType.OPPONENT_PITTING: "not yet detectable -- needs Phase 14 (opponent intelligence)",
-    EventType.UNDERCUT_OPPORTUNITY: "not yet detectable -- needs Phase 14 (opponent intelligence)",
-    EventType.OVERCUT_OPPORTUNITY: "not yet detectable -- needs Phase 14 (opponent intelligence)",
-    EventType.TRAFFIC_RELEASE: "not yet detectable -- needs Phase 14 (opponent intelligence)",
-    EventType.POSITION_THREAT: "not yet detectable -- needs Phase 14 (opponent intelligence)",
-    EventType.POSITION_OPPORTUNITY: "not yet detectable -- needs Phase 14 (opponent intelligence)",
+    EventType.OPPONENT_PITTING: "live (Phase 14, from an opponent's own pit_status)",
+    EventType.UNDERCUT_OPPORTUNITY: "live (Phase 14, from backend/opponents' gap + pit-probability heuristic)",
+    EventType.OVERCUT_OPPORTUNITY: "live (Phase 14, from backend/opponents' gap + pit-probability heuristic)",
+    EventType.TRAFFIC_RELEASE: "live (Phase 14, from backend/opponents' gap-ahead trend)",
+    EventType.POSITION_THREAT: "live (Phase 14, from backend/opponents' close-gap-behind heuristic)",
+    EventType.POSITION_OPPORTUNITY: "live (Phase 14, from backend/opponents' close-gap-ahead heuristic)",
     EventType.RACING_LINE_DEGRADATION: "not yet detectable -- needs Phase 15 (racing-line intelligence)",
-    EventType.STRATEGY_FAILURE: "not yet detectable -- needs Phase 9 (strategy engine) to have a decision to evaluate",
+    EventType.STRATEGY_FAILURE: "not yet detectable -- needs a strategy decision's actual outcome to evaluate against",
 }
 
 

@@ -15,10 +15,16 @@ field spreads probability across multiple positions, probabilities sum to
 `RaceState.predicted_finishing_position`, building this car's own time
 distribution from `backend/strategy`'s chosen candidate
 (`StrategyDecision.chosen_projected_time_s` /
-`chosen_residual_std_s × sqrt(chosen_remaining_laps)`). **Opponent
-distributions have no live source yet** — the simulator is still
-single-car (Phase 2/18) and there is no opponent pace model (Phase 14) —
-so live usage today always reports `source="insufficient_opponent_data"`
-rather than fabricating a plausible-looking distribution from nothing. The
-estimator accepts an injectable `opponent_source` callable so Phase 14
-only has to supply real data, not change this wiring.
+`chosen_residual_std_s × sqrt(chosen_remaining_laps)`).
+
+**Update (Phase 14): opponent distributions now have a real source.**
+`backend/opponents/prediction.py::opponent_distributions_for` builds a
+`TimeDistribution` for every other tracked car the same way (via each
+car's own fitted degradation curve, since `TyreDegradationEstimator` is
+keyed by `car_id`) — proven end-to-end in
+`tests/test_opponents_estimator.py`, which asserts `source == "monte_carlo"`
+mid-race in a real 3-car simulation. Live usage still reports
+`source="insufficient_opponent_data"` whenever `opponent_source` isn't
+wired up or genuinely has no data (e.g. a single-car run, or right at race
+end when `remaining_laps` hits 0 for every car) — that remains the honest
+answer in those cases, not a fallback to be avoided.
