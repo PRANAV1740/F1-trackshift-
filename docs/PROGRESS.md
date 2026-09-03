@@ -27,7 +27,7 @@ been verified.
 | 12 | Safety car / VSC | done | Detection (Phase 8) + pit-loss modeling (Phase 9) already covered; added simulator FlagPeriod injection + full end-to-end reactive-loop test. 171/171 tests passing |
 | 13 | Weather | done | Rain-probability trend detection (linear regression on observed history) feeding RAIN_INCOMING; simulator WeatherTransition injection. No live weather feed claimed. 171/171 tests passing |
 | 14 | Opponent intelligence | done | First genuine multi-car simulation. RaceOrderTracker, OpponentSummary, undercut/overcut classifier, 6 new live events, UNDERCUT/OVERCUT wired into strategy, position prediction unlocked. Two significant bugs found+fixed (asyncio scheduling fairness, timestamp domain mismatch). 199/199 tests passing |
-| 15 | Racing-line intelligence | todo | |
+| 15 | Racing-line intelligence | done | Per-corner analysis (braking point/intensity, entry/apex/exit speed, line deviation, corner time loss), line classification (IDEAL/ATTACKING/DEFENSIVE), RACING_LINE_DEGRADATION event live. 211/211 tests passing |
 | 16 | Radio intelligence | todo | |
 | 17 | Human/AI disagreement | todo | |
 | 18 | Simulator / replay engine | done | FlagPeriod (Phase 12), WeatherTransition (Phase 13), multi-car concurrent adapters (Phase 14), and PitStopEvent in-run pit stops (tyre compound/age reset, stationary box time, pit speed capping, pit history). 207/207 tests passing |

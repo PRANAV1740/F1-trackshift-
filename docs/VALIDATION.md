@@ -313,6 +313,14 @@ elsewhere in the docs.
      and resetting `chosen_projected_time_s` to `None` — also not a bug,
      also required a mid-race check instead).
 
+## Phase 15 — racing-line intelligence
+
+- 211/211 tests passing, up from 207. New coverage in `tests/test_racing_line.py` (4 tests):
+  per-corner analysis across all 14 corners on `SyntheticTrack` (`braking_point_m`, `braking_intensity`,
+  `entry_speed_kph`, `apex_speed_kph`, `exit_speed_kph`, `line_deviation_m`, `time_loss_s`), line classification
+  (`IDEAL`, `ATTACKING`, `DEFENSIVE`), `RacingLineEstimator` state updating and multi-lap time loss tracking,
+  and `RACING_LINE_DEGRADATION` event firing on rising edge via `EventDetectionEngine`.
+
 ## Phase 18 — simulator / replay engine
 
 - 207/207 tests passing, up from 199. New coverage in `tests/test_simulator_pit_stop.py` (8 tests):

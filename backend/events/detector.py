@@ -43,6 +43,7 @@ class DetectionThresholds:
     opponent_pit_probability_uncommitted: float = 0.25  # "not about to pit"
     traffic_gap_s: float = 1.5  # closer than this counts as being held up
     traffic_release_gap_s: float = 4.0  # gap must open back up past this to count as "released"
+    racing_line_time_loss_s: float = 0.4  # cumulative corner time loss triggering racing line degradation
 
 
 @dataclass
@@ -54,6 +55,7 @@ class _CarMemory:
     pace_drop_active: bool = False
     in_pit_window: bool = False
     rain_incoming_active: bool = False
+    racing_line_degradation_active: bool = False
     opponent_pit_status: dict[str, object] = field(default_factory=dict)
     undercut_opportunity_active: set = field(default_factory=set)
     overcut_opportunity_active: set = field(default_factory=set)
@@ -82,6 +84,7 @@ class EventDetectionEngine:
         events += self._detect_pace_events(state, mem, now)
         events += self._detect_pit_window_events(state, mem, now)
         events += self._detect_weather_events(state, mem, now, weather_assessment)
+        events += self._detect_racing_line_events(state, mem, now)
         events += self._detect_opponent_events(state, mem, now)
 
         if events:
@@ -250,6 +253,33 @@ class EventDetectionEngine:
                 )
             )
         mem.rain_incoming_active = wetting
+        return events
+
+    def _detect_racing_line_events(self, state: RaceState, mem: _CarMemory, now: datetime) -> list[RaceEvent]:
+        events = []
+        analysis = state.racing_line_analysis
+        degraded = analysis is not None and (
+            analysis.line_degradation_detected
+            or analysis.total_time_loss_s >= self._thresholds.racing_line_time_loss_s
+        )
+        if degraded and not mem.racing_line_degradation_active:
+            events.append(
+                RaceEvent(
+                    event_type=EventType.RACING_LINE_DEGRADATION,
+                    car_id=state.car_id,
+                    lap=state.current_lap,
+                    timestamp=now,
+                    severity=EventSeverity.WARNING,
+                    confidence=0.75,
+                    evidence={
+                        "total_time_loss_s": analysis.total_time_loss_s if analysis else 0.0,
+                        "overall_classification": analysis.overall_classification.value if analysis else "UNKNOWN",
+                    },
+                    affected_systems=("strategy", "pit_wall", "hq"),
+                    message=f"Racing line degradation detected (time loss {analysis.total_time_loss_s:.2f}s).",
+                )
+            )
+        mem.racing_line_degradation_active = degraded
         return events
 
     def _detect_opponent_events(self, state: RaceState, mem: _CarMemory, now: datetime) -> list[RaceEvent]:

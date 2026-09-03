@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Optional
 if TYPE_CHECKING:
     from backend.opponents.model import OpponentSummary
     from backend.prediction.model import PositionPrediction
+    from backend.racing_line.model import RacingLineAnalysis
     from backend.state.baseline import BaselineTrajectory
     from backend.strategy.engine import StrategyDecision
 
@@ -99,6 +100,8 @@ class RaceState:
     expected_clean_pace_s: Optional[float] = None
     pace_delta_s: Optional[float] = None
     pace_trend_s_per_lap: Optional[float] = None
+    # --- populated by Phase 15 (racing-line intelligence) ---
+    racing_line_analysis: Optional["RacingLineAnalysis"] = None
 
     fuel_load_kg: Optional[float] = None
 

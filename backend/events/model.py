@@ -49,7 +49,7 @@ DETECTOR_STATUS: dict[EventType, str] = {
     EventType.TRAFFIC_RELEASE: "live (Phase 14, from backend/opponents' gap-ahead trend)",
     EventType.POSITION_THREAT: "live (Phase 14, from backend/opponents' close-gap-behind heuristic)",
     EventType.POSITION_OPPORTUNITY: "live (Phase 14, from backend/opponents' close-gap-ahead heuristic)",
-    EventType.RACING_LINE_DEGRADATION: "not yet detectable -- needs Phase 15 (racing-line intelligence)",
+    EventType.RACING_LINE_DEGRADATION: "live (Phase 15, from backend/racing_line's time loss trend)",
     EventType.STRATEGY_FAILURE: "not yet detectable -- needs a strategy decision's actual outcome to evaluate against",
 }
 
