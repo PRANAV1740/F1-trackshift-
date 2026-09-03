@@ -1,11 +1,10 @@
 # radio/extraction
 
-**Status:** not yet implemented (Phase 16).
+**Status:** implemented (Phase 16).
 
-Keyword/semantic extraction over transcribed radio text into a small,
-well-defined set of driver-reported states (front/rear tyre issue,
-graining, overheating, traffic, rain, braking issue, traction issue --
-problem prompt section 18), and correlation of those against telemetry to
-produce disagreement signals for `backend/strategy` (problem prompt section
-19). Explicitly out of scope: any claim of detecting driver "mentality" or
-psychological state -- only the listed, telemetry-correlatable signals.
+Keyword/semantic extraction over transcribed radio text (`RadioIntentExtractor`).
+Maps driver/engineer transcripts to `RadioIntent` vocabulary (`TYRE_GRAINING`, `TYRE_OVERHEATING`,
+`TYRE_PUNCTURE`, `TRAFFIC_HEAVY`, `RAIN_REPORTED`, `BRAKE_BAL_ISSUE`, `STRATEGY_PIT_REQUEST`,
+`STRATEGY_STAY_OUT_REQUEST`). Outputs structured `DriverRadioMessage` records.
+
+Exercised in `tests/test_radio.py`.

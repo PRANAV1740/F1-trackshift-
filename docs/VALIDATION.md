@@ -321,6 +321,14 @@ elsewhere in the docs.
   (`IDEAL`, `ATTACKING`, `DEFENSIVE`), `RacingLineEstimator` state updating and multi-lap time loss tracking,
   and `RACING_LINE_DEGRADATION` event firing on rising edge via `EventDetectionEngine`.
 
+## Phase 16 — radio intelligence
+
+- 217/217 tests passing, up from 211. New coverage in `tests/test_radio.py` (6 tests):
+  `RadioIntentExtractor` keyword and pattern matching for driver-reported states (`TYRE_GRAINING`, `TYRE_OVERHEATING`,
+  `TYRE_PUNCTURE`, `TRAFFIC_HEAVY`, `RAIN_REPORTED`, `BRAKE_BAL_ISSUE`, `STRATEGY_PIT_REQUEST`, `STRATEGY_STAY_OUT_REQUEST`,
+  `UNKNOWN`), `DriverRadioMessage` construction with explicit `is_demo_mode=True`, and `RadioTranscriptionService` async
+  non-blocking processing guarantee (`await asyncio.sleep(0)` yield with graceful fallback handling).
+
 ## Phase 18 — simulator / replay engine
 
 - 207/207 tests passing, up from 199. New coverage in `tests/test_simulator_pit_stop.py` (8 tests):

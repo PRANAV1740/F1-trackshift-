@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from backend.racing_line.model import RacingLineAnalysis
     from backend.state.baseline import BaselineTrajectory
     from backend.strategy.engine import StrategyDecision
+    from radio.model import DriverRadioMessage
 
 from backend.telemetry.schema import (
     OpponentState,
@@ -126,6 +127,9 @@ class RaceState:
     current_strategy: Optional["StrategyDecision"] = None
     # --- populated by Phase 11 (position / outcome prediction) ---
     predicted_finishing_position: Optional["PositionPrediction"] = None
+    # --- populated by Phase 16 (radio intelligence) ---
+    latest_radio_message: Optional["DriverRadioMessage"] = None
+    radio_history: list["DriverRadioMessage"] = field(default_factory=list)
 
     confidence: float = 1.0
 
