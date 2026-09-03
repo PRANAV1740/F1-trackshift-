@@ -1,7 +1,14 @@
-// TrackShift 2026 Race Intelligence Engine -- Frontend App Logic
+const RENDER_BACKEND = "f1-o7v4.onrender.com";
 
-const API_BASE = "http://localhost:8000";
-const WS_URL = "ws://localhost:8000/ws/race";
+const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+
+const API_BASE = isLocalhost
+  ? "http://localhost:8000"
+  : `https://${RENDER_BACKEND}`;
+
+const WS_URL = isLocalhost
+  ? "ws://localhost:8000/ws/race"
+  : `wss://${RENDER_BACKEND}/ws/race`;
 
 document.addEventListener("DOMContentLoaded", () => {
   setupTabs();
