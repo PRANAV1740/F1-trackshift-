@@ -1,0 +1,11 @@
+# TrackShift 2026 Dependencies for Render Deployment
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+websockets>=12.0
+pydantic>=2.6.0
+numpy>=1.26.0
+pandas>=2.2.0
+scikit-learn>=1.4.0
+xgboost>=2.0.0
+httpx>=0.27.0
+-e .
