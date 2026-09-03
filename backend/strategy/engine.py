@@ -77,6 +77,14 @@ class StrategyDecision:
     invalidation_conditions: list[str] = field(default_factory=list)
     candidate_scores: dict[str, float] = field(default_factory=dict)
     position_forecast_is_naive: bool = True
+    # The winning candidate's projected total time and residual uncertainty
+    # (laps only -- excludes risk/failure penalties), exposed so Phase 11's
+    # position-outcome prediction can build a time distribution from the
+    # SAME numbers the decision was actually made from, rather than
+    # recomputing them independently.
+    chosen_projected_time_s: Optional[float] = None
+    chosen_residual_std_s: Optional[float] = None
+    chosen_remaining_laps: Optional[int] = None
 
     def to_dict(self) -> dict:
         return {
@@ -200,6 +208,9 @@ def decide(
         risks=risks,
         invalidation_conditions=invalidations,
         candidate_scores={c.label: round(c.total_score_s, 3) for c in all_candidates},
+        chosen_projected_time_s=best.projected_stint_time_s,
+        chosen_residual_std_s=best.degradation_estimate.residual_std_s if best.degradation_estimate else None,
+        chosen_remaining_laps=remaining_laps,
     )
 
 

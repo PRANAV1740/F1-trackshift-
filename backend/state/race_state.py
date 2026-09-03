@@ -17,6 +17,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
+    from backend.prediction.model import PositionPrediction
     from backend.state.baseline import BaselineTrajectory
     from backend.strategy.engine import StrategyDecision
 
@@ -119,7 +120,7 @@ class RaceState:
     # --- populated by Phase 9/10 (strategy engine / compound selection) ---
     current_strategy: Optional["StrategyDecision"] = None
     # --- populated by Phase 11 (position / outcome prediction) ---
-    predicted_finishing_position: Optional[dict] = None
+    predicted_finishing_position: Optional["PositionPrediction"] = None
 
     confidence: float = 1.0
 

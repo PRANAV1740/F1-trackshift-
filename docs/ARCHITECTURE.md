@@ -416,14 +416,26 @@ horizon accounting during this phase. `UNDERCUT`/`OVERCUT`/`ATTACK`/
 `expected_position`/`position_gain` are an explicitly-flagged naive
 carry-forward pending Phase 11/14.
 
+## Position / outcome prediction (`backend/prediction`, Phase 11)
+
+A genuine Monte Carlo model (`predict_position`): sample this car's and
+every opponent's projected remaining-race-time distribution, rank each
+draw, report the empirical probability of finishing in each position.
+Honestly gated: with no opponent pace model yet (Phase 14) and a
+still-single-car simulator, live usage always reports
+`source="insufficient_opponent_data"` rather than fabricating a
+distribution — the machinery itself is validated with synthetic
+multi-opponent test fixtures and ready for Phase 14 to feed real data in
+via an injectable `opponent_source`.
+
 ## What is NOT built yet
 
-Past Phase 9: racing-line/opponent/weather intelligence, compound
-selection as its own refinement, position prediction, radio pipeline,
-both dashboards, evaluation/backtesting, and the public API/WS surface.
-Each has a stub `README.md` in its directory stating this and what it
-will own — see the repository layout above and `docs/PROGRESS.md` for
-current status.
+Past Phase 11: racing-line/opponent/weather intelligence, compound
+selection's remaining refinements (track temp/weather/traffic/opponent-
+strategy factors), radio pipeline, both dashboards,
+evaluation/backtesting, and the public API/WS surface. Each has a stub
+`README.md` in its directory stating this and what it will own — see the
+repository layout above and `docs/PROGRESS.md` for current status.
 
 No claim is made anywhere in this repository of real F1 telemetry access,
 FIA system integration, or production readiness. Interfaces are designed so

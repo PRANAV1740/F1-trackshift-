@@ -23,7 +23,7 @@ been verified.
 | 8 | Event detection engine | done | 6/15 event types live (SC/VSC/tyre-cliff/degradation-accel/pace-drop/free-pit-window); rest honestly marked pending later phases. 127/127 tests passing |
 | 9 | Strategy engine | done | Explicit objective function (projected time + risk + failure penalty), VSC/SC-aware pit loss, real off-by-one-lap bug found and fixed. 143/143 tests passing |
 | 10 | Compound selection | done (core) | Candidate-compound comparison via the same objective function shipped as part of Phase 9's engine (comparing PIT->SOFT/MEDIUM/HARD is literally what `decide()` does) rather than a separate parallel module, to avoid duplicate logic. Track-temperature/weather/traffic/opponent-strategy refinements are honestly pending Phase 13/14 -- not yet factored in |
-| 11 | Position / outcome prediction | todo | |
+| 11 | Position / outcome prediction | done | Real Monte Carlo model, honestly reports insufficient_opponent_data in live use pending Phase 14. 154/154 tests passing |
 | 12 | Safety car / VSC | todo | |
 | 13 | Weather | todo | |
 | 14 | Opponent intelligence | todo | |

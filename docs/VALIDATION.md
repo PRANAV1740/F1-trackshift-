@@ -210,6 +210,24 @@ elsewhere in the docs.
   no separate compound-selection test suite because there is no separate
   compound-selection code path to test.
 
+## Phase 11 — position / outcome prediction
+
+- 154/154 tests passing, up from 143. The Monte Carlo model itself is
+  validated with synthetic multi-opponent fixtures: a dominant car wins
+  P1 in >95% of draws, a much-slower car finishes last in >95%, a close
+  field spreads probability across multiple positions, probabilities
+  always sum to 1.0, `expected_position` matches manual recomputation, and
+  results are deterministic given the same seed.
+- The wiring is deliberately tested to prove it does NOT fabricate data:
+  an end-to-end run of the full pipeline (ingestion → normalization →
+  state → tyre → pace → strategy → prediction) with no opponent source
+  configured asserts `source == "insufficient_opponent_data"` on the
+  final state, not a plausible-looking but unfounded distribution.
+- Minor doc-authoring slip caught and fixed immediately (not a code bug):
+  an edit to docs/MODELS.md briefly duplicated the "Pace model" section
+  header. Caught by grepping section headers before moving on; fixed by
+  merging the split content back together.
+
 ## What's intentionally NOT claimed
 
 - No claim of real F1 telemetry access or FIA integration.

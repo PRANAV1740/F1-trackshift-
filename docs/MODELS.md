@@ -156,3 +156,39 @@ from the clean-lap set only via `avg_confidence` and track-state signals
 already on `LapRecord` — there is no dedicated traffic classifier; that
 depends on gap-to-car-ahead data, which becomes available with
 `backend/opponents` in Phase 14.
+
+## Position prediction model (`backend/prediction/model.py`)
+
+**Used by:** `backend/prediction/estimator.py::PositionPredictionEstimator`,
+writing into `RaceState.predicted_finishing_position`.
+
+**Kind:** Monte Carlo simulation (`numpy.random.default_rng`), not a
+learned model. Sample this car's and each opponent's projected remaining-
+race-time from independent Normal distributions, rank each draw, tally
+the empirical distribution over finishing positions.
+
+**Inputs:** `TimeDistribution(car_id, mean_s, std_s)` for this car (built
+from `backend/strategy`'s chosen candidate: mean = `chosen_projected_time_s`,
+std = `chosen_residual_std_s × sqrt(chosen_remaining_laps)`) and a list of
+the same for opponents.
+
+**Target/output:** `position_probabilities: dict[int, float]` (sums to
+1.0), `expected_position` (probability-weighted mean), `position_gain_expected`
+(current position minus expected), `risk_of_losing_positions` (fraction of
+draws finishing worse than the current position).
+
+**Validation:** `tests/test_prediction_model.py` — a dominant car wins P1
+>95% of draws, a much-slower car finishes last >95% of draws, a close
+field spreads probability across multiple positions, probabilities always
+sum to 1.0, `expected_position` matches manual recomputation from the
+distribution, and results are deterministic given the same seed.
+
+**Known limitation, stated plainly:** this model has **no live opponent
+data source**. `PositionPredictionEstimator` always returns
+`source="insufficient_opponent_data"` in current usage because the
+simulator only produces one car (Phase 2/18) and there is no opponent pace
+model (Phase 14) to build real opponent `TimeDistribution`s from. The
+Monte Carlo mechanism is real and tested; what's missing is a live input,
+not the math. This is the single clearest instance in the project of "the
+interface and the model exist; the number is not shown until real data can
+support it."
