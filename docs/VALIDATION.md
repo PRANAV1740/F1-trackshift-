@@ -346,8 +346,14 @@ elsewhere in the docs.
   end-to-end integration test (`default_pipeline` → `RaceStateEstimator` → `TyreDegradationEstimator`)
   proving that pit laps get `was_pit_lap=True` on their `LapRecord` and are strictly excluded from tyre
   degradation fitting observations.
-- Composes capabilities built across Phases 12 (flag injection), 13 (weather injection), and 14 (multi-car
-  concurrent adapters), completing the simulator/replay engine requirements.
+## Phase 19 — scenario suite
+
+- 232/232 tests passing, up from 223. New coverage in `tests/test_scenarios.py` (9 tests):
+  `ScenarioDefinition` catalog of 12 named, seeded scenarios (`normal_race`, `tyre_cliff`, `vsc_pit_opportunity`,
+  `sc_pit_opportunity`, `opponent_undercut`, `opponent_overcut`, `rain_arrival`, `heavy_traffic`, `telemetry_corruption`,
+  `missing_telemetry`, `strategy_inferiority`, `driver_disagreement`), verifying deterministic scenario factory creation and
+  full end-to-end `ScenarioRunner` execution through the complete normalization, state estimation, opponent intelligence,
+  strategy, event detection, and disagreement pipeline.
 
 ## What's intentionally NOT claimed
 
