@@ -329,6 +329,14 @@ elsewhere in the docs.
   `UNKNOWN`), `DriverRadioMessage` construction with explicit `is_demo_mode=True`, and `RadioTranscriptionService` async
   non-blocking processing guarantee (`await asyncio.sleep(0)` yield with graceful fallback handling).
 
+## Phase 17 — human/AI disagreement
+
+- 223/223 tests passing, up from 217. New coverage in `tests/test_disagreement.py` (6 tests):
+  `HumanAIDisagreementDetector` comparing driver radio reports against telemetry-derived estimators for five distinct conflict types:
+  `DRIVER_REPORTS_TYRE_ISSUE_BUT_TELEMETRY_HEALTHY`, `DRIVER_REPORTS_TYRES_FINE_BUT_CLIFF_IMMINENT`,
+  `DRIVER_REQUESTS_PIT_BUT_STRATEGY_RECOMMENDS_STAY_OUT`, `DRIVER_REPORTS_RAIN_BUT_WEATHER_DRY`, and
+  `DRIVER_REPORTS_TRAFFIC_BUT_GAP_LARGE`.
+
 ## Phase 18 — simulator / replay engine
 
 - 207/207 tests passing, up from 199. New coverage in `tests/test_simulator_pit_stop.py` (8 tests):

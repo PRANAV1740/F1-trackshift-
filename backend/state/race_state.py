@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from backend.racing_line.model import RacingLineAnalysis
     from backend.state.baseline import BaselineTrajectory
     from backend.strategy.engine import StrategyDecision
+    from radio.disagreement import HumanAIDisagreement
     from radio.model import DriverRadioMessage
 
 from backend.telemetry.schema import (
@@ -130,6 +131,8 @@ class RaceState:
     # --- populated by Phase 16 (radio intelligence) ---
     latest_radio_message: Optional["DriverRadioMessage"] = None
     radio_history: list["DriverRadioMessage"] = field(default_factory=list)
+    # --- populated by Phase 17 (human/AI disagreement) ---
+    disagreements: list["HumanAIDisagreement"] = field(default_factory=list)
 
     confidence: float = 1.0
 
