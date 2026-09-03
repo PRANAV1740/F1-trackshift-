@@ -39,7 +39,7 @@ been verified.
 | 24 | Track visualization | done | Interactive 14-corner circuit SVG visualization with corner telemetry inspector (braking point, apex/exit speed, corner time loss). 242/242 tests passing |
 | 25 | Observability | done | DecisionAuditLogger recording structured JSON decision audit logs (inputs, model versions, top 3 reasons, invalidation conditions, 5-lap predicted vs actual outcome). 247/247 tests passing |
 | 26 | Failure handling | done | Graceful degradation test suite verifying LOCF state retention under missing telemetry streams, packet reordering, corrupted sensor clamping, and log_and_continue non-fatal exception wrapping. 247/247 tests passing |
-| 27 | Security / code quality | todo | |
+| 27 | Security / code quality | done | Security and quality audit verifying API input sanitization against path traversal, memory leak prevention over 200+ frames, and zero hardcoded secret keys. 251/251 tests passing |
 | 28 | Testing (full pass) | todo | |
 | 29 | Demo mode | todo | |
 | 30 | Final audit | todo | |

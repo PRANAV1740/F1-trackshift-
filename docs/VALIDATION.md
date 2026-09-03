@@ -381,7 +381,11 @@ elsewhere in the docs.
 
 - 247/247 tests passing, up from 243. New coverage in `tests/test_failure_handling.py` (4 tests):
   Graceful degradation test suite verifying LOCF state retention during telemetry stream gaps, deterministic packet reordering,
-  clamping of corrupted sensor values (negative speed, impossible throttle/brake values), and non-fatal exception wrapping via `log_and_continue`.
+## Phase 27 — security & code quality review
+
+- 251/251 tests passing, up from 247. New coverage in `tests/test_security_quality.py` (4 tests):
+  Security and code quality audit verifying API input sanitization against path traversal, prevention of memory leaks over 200+ frame streams,
+  and regex scan confirming zero hardcoded secret keys or tokens in source code.
 
 ## What's intentionally NOT claimed
 
