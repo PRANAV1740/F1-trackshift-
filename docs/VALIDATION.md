@@ -385,7 +385,11 @@ elsewhere in the docs.
 
 - 251/251 tests passing, up from 247. New coverage in `tests/test_security_quality.py` (4 tests):
   Security and code quality audit verifying API input sanitization against path traversal, prevention of memory leaks over 200+ frame streams,
-  and regex scan confirming zero hardcoded secret keys or tokens in source code.
+## Phase 28, 29, 30 — Full testing pass, Demo mode & Final technical audit
+
+- 252/252 tests passing, up from 251. New coverage in `tests/test_demo.py` (1 test):
+  Full test suite verification passing 252/252 tests cleanly with zero skipped or xfail placeholders. Built `demo.py` packaged scenario launcher with preset race profiles,
+  fast-forward playback multipliers, and browser-launching REST/WebSocket web dashboards. Published single self-contained technical report in `docs/FINAL_TECHNICAL_REPORT.md`.
 
 ## What's intentionally NOT claimed
 

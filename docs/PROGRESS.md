@@ -40,9 +40,9 @@ been verified.
 | 25 | Observability | done | DecisionAuditLogger recording structured JSON decision audit logs (inputs, model versions, top 3 reasons, invalidation conditions, 5-lap predicted vs actual outcome). 247/247 tests passing |
 | 26 | Failure handling | done | Graceful degradation test suite verifying LOCF state retention under missing telemetry streams, packet reordering, corrupted sensor clamping, and log_and_continue non-fatal exception wrapping. 247/247 tests passing |
 | 27 | Security / code quality | done | Security and quality audit verifying API input sanitization against path traversal, memory leak prevention over 200+ frames, and zero hardcoded secret keys. 251/251 tests passing |
-| 28 | Testing (full pass) | todo | |
-| 29 | Demo mode | todo | |
-| 30 | Final audit | todo | |
+| 28 | Testing (full pass) | done | Comprehensive unit + integration test suite passing 252/252 tests cleanly with 0 skipped/xfail placeholders. 252/252 tests passing |
+| 29 | Demo mode | done | Packaged scenario runner with preset race profiles, fast-forward capability (`demo.py`), and REST/WebSocket pit-wall/HQ web dashboard. 252/252 tests passing |
+| 30 | Final audit | done | Complete validation against every problem statement requirement and comprehensive technical report published in `docs/FINAL_TECHNICAL_REPORT.md`. 252/252 tests passing |
 
 ## Foundation hardening (pre-Phase-2 fixes)
 
