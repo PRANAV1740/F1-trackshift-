@@ -1,9 +1,18 @@
 # evaluation/latency
 
-**Status:** not yet implemented (Phase 17, instrumented starting whichever
-phase first has an end-to-end pipeline to measure).
+**Status:** implemented (Phase 21).
 
-Measures decision latency end-to-end and per stage (ingestion,
-normalization, state update, tyre model, event detection, strategy,
-prediction, WebSocket, frontend), against the target of &lt;2s and hard
-ceiling of &lt;5s (problem prompt section 23).
+Measures decision latency end-to-end and per stage:
+- Ingestion & Normalization
+- State Estimation
+- Tyre Degradation Fitting
+- Pace Intelligence
+- Racing Line Intelligence
+- Opponent Intelligence
+- Position Prediction
+- Strategy Decision
+- Event Detection
+
+Enforces performance target of <2.0s mean decision latency and hard ceiling of <5.0s max decision latency under heavy tick rates (`LatencyBenchmark`).
+
+Exercised in `tests/test_latency.py`.

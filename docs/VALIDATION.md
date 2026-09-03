@@ -359,7 +359,13 @@ elsewhere in the docs.
   `BacktestEngine` evaluating AI strategy against a naive fixed stay-out baseline across all 12 scenario suite benchmarks,
   measuring total race time, pit stop timing, tyre cliff hits avoided, decision latency, and positions gained. Honestly reports
   that AI strategy outperforms naive baseline in dynamic/cliff/weather/opportunity scenarios (e.g. `tyre_cliff`, `vsc_pit_opportunity`,
-  `rain_arrival`, `opponent_undercut`, saving up to ~18s per stint) while performing equivalently under steady dry conditions (`normal_race`).
+## Phase 21 — latency engineering
+
+- 236/236 tests passing, up from 235. New coverage in `tests/test_latency.py` (1 test):
+  `LatencyBenchmark` measuring end-to-end and per-stage timing breakdown across 9 pipeline stages (normalization, state estimation,
+  tyre degradation, pace intelligence, racing line intelligence, opponent intelligence, position prediction, strategy decision,
+  event detection) under heavy tick rate (10Hz multi-car stream). Enforces <2.0s decision latency target (`mean_decision_latency_ms < 2000.0ms`)
+  and <5.0s hard ceiling (`max_decision_latency_ms < 5000.0ms`), confirming per-tick frame processing latency is under ~5ms.
 
 ## What's intentionally NOT claimed
 
