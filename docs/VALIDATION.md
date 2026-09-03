@@ -371,7 +371,17 @@ elsewhere in the docs.
   FastAPI application exposing REST endpoints (`/api/health`, `/api/scenarios`, `/api/scenarios/{id}/run`, `/api/radio`, `/api/evaluation`, `/api/latency`)
   and WebSocket streaming channel (`/ws/race`). Built Pit Wall dashboard (dominant hero decision widget, radio transcripts, human/AI disagreement alert banner),
   HQ Strategic dashboard (multi-car leaderboard, tyre degradation, rain probability, opponent gaps), and Track Visualization (14-corner interactive SVG map
-  with corner telemetry inspector showing braking point, apex/exit speeds, line deviation, and corner time loss).
+## Phase 25 — observability / decision audit trail
+
+- 243/243 tests passing, up from 242. New coverage in `tests/test_observability.py` (1 test):
+  `DecisionAuditLogger` generating structured JSON records documenting exact inputs, model versions, top 3 reasons, invalidation conditions,
+  and evaluating predicted vs actual position and time delta after 5 laps.
+
+## Phase 26 — failure handling & graceful degradation
+
+- 247/247 tests passing, up from 243. New coverage in `tests/test_failure_handling.py` (4 tests):
+  Graceful degradation test suite verifying LOCF state retention during telemetry stream gaps, deterministic packet reordering,
+  clamping of corrupted sensor values (negative speed, impossible throttle/brake values), and non-fatal exception wrapping via `log_and_continue`.
 
 ## What's intentionally NOT claimed
 

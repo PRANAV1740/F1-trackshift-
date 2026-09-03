@@ -37,8 +37,8 @@ been verified.
 | 22 | Pit wall | done | Pit wall dashboard with dominant hero decision widget, radio transcript, and human/AI disagreement alert. 242/242 tests passing |
 | 23 | HQ | done | Strategic HQ dashboard with multi-car leaderboard, tyre degradation, rain probability, and opponent gap tracking. 242/242 tests passing |
 | 24 | Track visualization | done | Interactive 14-corner circuit SVG visualization with corner telemetry inspector (braking point, apex/exit speed, corner time loss). 242/242 tests passing |
-| 25 | Observability | todo | |
-| 26 | Failure handling | todo | |
+| 25 | Observability | done | DecisionAuditLogger recording structured JSON decision audit logs (inputs, model versions, top 3 reasons, invalidation conditions, 5-lap predicted vs actual outcome). 247/247 tests passing |
+| 26 | Failure handling | done | Graceful degradation test suite verifying LOCF state retention under missing telemetry streams, packet reordering, corrupted sensor clamping, and log_and_continue non-fatal exception wrapping. 247/247 tests passing |
 | 27 | Security / code quality | todo | |
 | 28 | Testing (full pass) | todo | |
 | 29 | Demo mode | todo | |
