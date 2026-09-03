@@ -47,7 +47,7 @@ def run_terminal_demo(scenario_id: str = "tyre_cliff", speed: float = 1.0) -> No
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="TrackShift 2026 Demo Mode Launcher")
-    parser.add_argument("--scenario", default="tyre_cliff", choices=list(NAMED_SCENARIOS.keys()), help="Preset scenario ID")
+    parser.add_argument("--scenario", default="tyre_cliff", choices=list(NAMED_SCENARIOS), help="Preset scenario ID")
     parser.add_argument("--speed", type=float, default=2.0, help="Playback speed multiplier")
     parser.add_argument("--port", type=int, default=8000, help="Web server port")
     parser.add_argument("--cli-only", action="store_true", help="Run terminal demo without web server")
