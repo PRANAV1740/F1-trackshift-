@@ -29,6 +29,8 @@ from typing import Iterator
 from backend.telemetry.schema import (
     RaceTelemetry,
     DataSource,
+    PitStatus,
+    PitStop,
     TrackState,
     TyreCompound,
     TyreTemperatures,
@@ -81,6 +83,27 @@ class WeatherTransition:
     air_temperature_c: float | None = None
 
 
+@dataclass(frozen=True)
+class PitStopEvent:
+    """A literal, in-run pit stop: this LOCAL lap becomes the pit lap.
+
+    Simplified model, documented rather than hidden: the stop is treated
+    as happening at the START of the pit lap (real pit entry is partway
+    through a lap) -- `stationary_time_s` of stopped time (speed 0,
+    `pit_status=IN_PIT_BOX`) is inserted before the lap's normal distance
+    is driven, and the REST of that lap (drive through/out of the pit
+    lane) is speed-capped at `pit_lane_speed_kph`. Tyre age resets to 0 and
+    compound changes to `new_compound` effective from the moment the
+    stationary time ends -- i.e. for the pit-lane-speed portion of this
+    lap and every lap after it, until another `PitStopEvent`.
+    """
+
+    lap: int
+    new_compound: TyreCompound
+    stationary_time_s: float = 2.5
+    pit_lane_speed_kph: float = 80.0
+
+
 @dataclass
 class GeneratorConfig:
     car_id: str = "44"
@@ -110,6 +133,7 @@ class GeneratorConfig:
     starting_lap: int = 1
     flag_periods: tuple[FlagPeriod, ...] = ()
     weather_transitions: tuple[WeatherTransition, ...] = ()
+    pit_stops: tuple[PitStopEvent, ...] = ()
 
 
 def _gear_for_speed(speed_kph: float) -> int:
@@ -154,7 +178,9 @@ class TelemetryGenerator:
         self._speed_profile = build_speed_profile(config.track, config.v_max_kph)
         self.injected_events: list[tuple[int, str]] = []
 
-    def ground_truth_pace_penalty_s(self, lap: int, tyre_age_laps: int, fuel_load_kg: float) -> float:
+    def ground_truth_pace_penalty_s(
+        self, lap: int, tyre_age_laps: int, fuel_load_kg: float, compound: TyreCompound | None = None
+    ) -> float:
         """The total known pace penalty for a lap, for validation against estimators.
 
         `lap` is this run's stint-local lap (1-indexed from this
@@ -163,9 +189,14 @@ class TelemetryGenerator:
         evolution is a session/track property, not a stint-relative one --
         unlike degradation (tyre-relative) and fuel (stint-relative). With
         the default `starting_lap=1` this is a no-op (global == local).
+
+        `compound` defaults to `config.compound` -- pass it explicitly for
+        a lap after an in-run pit stop (`GeneratorConfig.pit_stops`), where
+        the active compound has changed from the config's starting one.
         """
 
-        degradation = COMPOUND_MODELS[self.config.compound].pace_penalty_s(tyre_age_laps)
+        active_compound = compound if compound is not None else self.config.compound
+        degradation = COMPOUND_MODELS[active_compound].pace_penalty_s(tyre_age_laps)
         fuel = fuel_effect_s(fuel_load_kg)
         global_lap = self.config.starting_lap + lap - 1
         evolution = track_evolution_gain_s(global_lap)
@@ -179,14 +210,17 @@ class TelemetryGenerator:
         elapsed_s = 0.0
         prev_speed_ms = kph_to_ms(self._speed_profile.speed_kph_at(0.0))
 
+        pit_stops_by_lap = {p.lap: p for p in cfg.pit_stops}
+        current_compound = cfg.compound
+        age_reference_lap = 1  # local lap at which the current tyre set was fitted
+        pit_history: list[PitStop] = []
+
         for lap in range(1, cfg.laps + 1):
-            tyre_age_laps = lap - 1
+            pit_event = pit_stops_by_lap.get(lap)
+            tyre_age_laps = lap - age_reference_lap
             global_lap = cfg.starting_lap + lap - 1
             pos_m = 0.0
             fuel_at_lap_start = max(cfg.starting_fuel_kg - cfg.fuel_burn_per_lap_kg * (lap - 1), 0.0)
-
-            penalty_s = self.ground_truth_pace_penalty_s(lap, tyre_age_laps, fuel_at_lap_start)
-            pace_multiplier = max((baseline_lap_time + penalty_s) / baseline_lap_time, 0.3)
 
             active_flag = _active_flag_period(cfg, global_lap)
             active_weather = _active_weather(cfg, global_lap)
@@ -198,6 +232,80 @@ class TelemetryGenerator:
                     speed_cap_fraction = SC_SPEED_CAP_FRACTION
                 else:
                     speed_cap_fraction = VSC_SPEED_CAP_FRACTION
+            if pit_event is not None:
+                speed_cap_fraction = min(speed_cap_fraction, pit_event.pit_lane_speed_kph / cfg.v_max_kph)
+
+            if pit_event is not None:
+                # Stationary phase: simplified as happening at the top of
+                # the pit lap (see PitStopEvent's docstring). Speed 0,
+                # position frozen, still on the OLD tyre until the moment
+                # the stop ends.
+                stationary_ticks = max(int(round(pit_event.stationary_time_s * cfg.tick_hz)), 1)
+                entry_timestamp = cfg.start_time + timedelta(seconds=elapsed_s)
+                for _ in range(stationary_ticks):
+                    timestamp = cfg.start_time + timedelta(seconds=elapsed_s)
+                    fuel_load = max(fuel_at_lap_start, 0.0)
+                    thermal_base = cfg.track_temperature_c * 0.6 + cfg.air_temperature_c * 0.2 + 55.0
+                    stationary_frame = RaceTelemetry(
+                        source=DataSource.SIMULATOR,
+                        source_timestamp=timestamp,
+                        sequence_id=sequence_id,
+                        car_id=cfg.car_id,
+                        lap=global_lap,
+                        sector=1,
+                        position=cfg.starting_position,
+                        speed_kph=0.0,
+                        acceleration_ms2=0.0,
+                        longitudinal_acceleration_g=0.0,
+                        lateral_acceleration_g=0.0,
+                        throttle_pct=0.0,
+                        brake_pct=0.0,
+                        steering_angle_deg=0.0,
+                        gear=1,
+                        rpm=4000.0,
+                        wheel_speeds=WheelSpeeds(front_left=0.0, front_right=0.0, rear_left=0.0, rear_right=0.0),
+                        tyre_compound=current_compound,
+                        tyre_age_laps=tyre_age_laps,
+                        tyre_temperature=TyreTemperatures(
+                            front_left_c=thermal_base, front_right_c=thermal_base,
+                            rear_left_c=thermal_base, rear_right_c=thermal_base,
+                        ),
+                        fuel_load_kg=fuel_load,
+                        track_temperature_c=active_weather.track_temperature_c or cfg.track_temperature_c,
+                        air_temperature_c=active_weather.air_temperature_c or cfg.air_temperature_c,
+                        weather=active_weather.weather,
+                        rain_probability=active_weather.rain_probability,
+                        track_state=TrackState.GREEN,
+                        pit_status=PitStatus.IN_PIT_BOX,
+                    )
+                    yield stationary_frame
+                    elapsed_s += dt
+                    sequence_id += 1
+
+                exit_timestamp = cfg.start_time + timedelta(seconds=elapsed_s)
+                pit_history.append(
+                    PitStop(
+                        lap=global_lap,
+                        entry_timestamp=entry_timestamp,
+                        exit_timestamp=exit_timestamp,
+                        stationary_time_s=pit_event.stationary_time_s,
+                        compound_before=current_compound,
+                        compound_after=pit_event.new_compound,
+                    )
+                )
+                current_compound = pit_event.new_compound
+                age_reference_lap = lap
+                tyre_age_laps = 0
+                prev_speed_ms = 0.0
+
+            # Computed AFTER any pit-stop swap above, so a lap with a stop
+            # uses the NEW compound/age=0 for the driven (pit-lane-capped)
+            # portion -- using the pre-stop tyre here would apply stale
+            # degradation to a fresh tyre.
+            penalty_s = self.ground_truth_pace_penalty_s(lap, tyre_age_laps, fuel_at_lap_start, current_compound)
+            pace_multiplier = max((baseline_lap_time + penalty_s) / baseline_lap_time, 0.3)
+
+            pit_status = PitStatus.EXITING_PIT if pit_event is not None else PitStatus.ON_TRACK
 
             while pos_m < cfg.track.length_m:
                 fuel_load = max(
@@ -268,7 +376,7 @@ class TelemetryGenerator:
                     gear=gear,
                     rpm=rpm,
                     wheel_speeds=wheel_speeds,
-                    tyre_compound=cfg.compound,
+                    tyre_compound=current_compound,
                     tyre_age_laps=tyre_age_laps,
                     tyre_temperature=tyre_temperature,
                     fuel_load_kg=fuel_load,
@@ -283,6 +391,8 @@ class TelemetryGenerator:
                     ),
                     safety_car=bool(active_flag and active_flag.kind == "SC"),
                     vsc=bool(active_flag and active_flag.kind == "VSC"),
+                    pit_status=pit_status,
+                    pit_history=list(pit_history),
                 )
 
                 noise_result = apply_noise(frame, self._rng, cfg.noise)

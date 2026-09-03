@@ -37,7 +37,7 @@ always yields byte-identical output -- see
 other backend code imports this package directly, which is what keeps the
 platform simulator-independent (see docs/ARCHITECTURE.md).
 
-**Injectable events (Phase 12/13):** `GeneratorConfig.flag_periods`
+**Injectable events (Phase 12/13/18):** `GeneratorConfig.flag_periods`
 (`FlagPeriod(start_lap, end_lap, kind="SC"|"VSC")`) sets `safety_car`/`vsc`/
 `track_state` on generated frames for the given global-lap range and caps
 speed to a fixed fraction of profile speed (`SC_SPEED_CAP_FRACTION=0.40`,
@@ -46,18 +46,19 @@ approximation, not a claim of matching real SC/VSC pace behavior).
 `GeneratorConfig.weather_transitions` (`WeatherTransition(start_lap,
 weather, rain_probability, ...)`) changes `weather`/`rain_probability`
 (and optionally track/air temperature) from a given global lap onward.
-Both are exercised end-to-end in `tests/test_sc_vsc_integration.py` (a
-simulator-injected SC period produces a real `SAFETY_CAR` event and an
-immediate strategy reassessment, not just a unit-level claim about it).
+`GeneratorConfig.pit_stops` (`PitStopEvent(lap, new_compound, stationary_time_s, pit_lane_speed_kph)`)
+injects a literal in-run pit stop on the specified lap: a stationary phase in pit box (`speed_kph = 0`),
+tyre compound and age reset, pit-lane speed capping during entry/exit, and pit history recording.
+All are exercised end-to-end in integration tests (e.g. `tests/test_sc_vsc_integration.py`,
+`tests/test_simulator_pit_stop.py`).
 
 **Known simplifications** (all deliberate, for a hackathon-grade
 prototype): fuel and degradation are modeled as a uniform pace multiplier
 applied to the whole lap's speed profile rather than affecting each corner
-individually; there is no multi-car interaction yet (opponents/gaps come in
-Phase 14/18); there is no literal in-run pit-stop event yet (continuous
-single-stint per generation run, until Phase 18) -- though
-`GeneratorConfig.starting_lap` (added in Phase 5, for `backend/tyre`'s
-multi-stint validation) already lets a run honestly represent "a stint that
-starts partway through a race": tyre age and fuel still start fresh, but
-track evolution uses the global lap number. Phase 18's real pit-stop
-events will build on this rather than replacing it.
+individually; opponent interaction uses discrete `SimulatorAdapter` instances per car
+managed by `RaceOrderTracker` (Phase 14). Continuous multi-stint racing with
+in-run pit stops is supported via `PitStopEvent`. `GeneratorConfig.starting_lap`
+(added in Phase 5, for `backend/tyre`'s multi-stint validation) also lets a run
+honestly represent "a stint that starts partway through a race": tyre age and fuel
+start fresh, while track evolution uses global lap number.
+

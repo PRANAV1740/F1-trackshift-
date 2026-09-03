@@ -313,6 +313,18 @@ elsewhere in the docs.
      and resetting `chosen_projected_time_s` to `None` — also not a bug,
      also required a mid-race check instead).
 
+## Phase 18 — simulator / replay engine
+
+- 207/207 tests passing, up from 199. New coverage in `tests/test_simulator_pit_stop.py` (8 tests):
+  `PitStopEvent` stationary phase (`speed_kph = 0.0` in pit box), tyre compound change and age reset,
+  pit history record creation and forward propagation, pit-lane speed capping (`EXITING_PIT` phase capped
+  to configured pit speed), single-run determinism under noise, multiple pit stops in one run, and an
+  end-to-end integration test (`default_pipeline` → `RaceStateEstimator` → `TyreDegradationEstimator`)
+  proving that pit laps get `was_pit_lap=True` on their `LapRecord` and are strictly excluded from tyre
+  degradation fitting observations.
+- Composes capabilities built across Phases 12 (flag injection), 13 (weather injection), and 14 (multi-car
+  concurrent adapters), completing the simulator/replay engine requirements.
+
 ## What's intentionally NOT claimed
 
 - No claim of real F1 telemetry access or FIA integration.

@@ -30,7 +30,7 @@ been verified.
 | 15 | Racing-line intelligence | todo | |
 | 16 | Radio intelligence | todo | |
 | 17 | Human/AI disagreement | todo | |
-| 18 | Simulator / replay engine | todo | |
+| 18 | Simulator / replay engine | done | FlagPeriod (Phase 12), WeatherTransition (Phase 13), multi-car concurrent adapters (Phase 14), and PitStopEvent in-run pit stops (tyre compound/age reset, stationary box time, pit speed capping, pit history). 207/207 tests passing |
 | 19 | Scenario suite | todo | |
 | 20 | Backtesting / evaluation | todo | |
 | 21 | Latency engineering | todo | |

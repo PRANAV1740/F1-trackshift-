@@ -484,12 +484,15 @@ honest-validation practice is meant to surface.
 
 ## What is NOT built yet
 
-Past Phase 14: racing-line intelligence, compound selection's remaining
-refinements (weather/track-temperature factors are available inputs but
-not yet used in compound choice), radio pipeline, both dashboards,
-evaluation/backtesting, and the public API/WS surface. Each has a stub
-`README.md` in its directory stating this and what it will own — see the
-repository layout above and `docs/PROGRESS.md` for current status.
+Past Phase 14 / 18: Phase 18's core simulator engine extensions (flag periods, weather
+transitions, multi-car support via concurrent adapters, and literal in-run `PitStopEvent`s
+with tyre reset, stationary phase, and pit history) are now complete. The remaining pending
+layers include: racing-line intelligence (Phase 15), radio intelligence (Phase 16),
+human/AI disagreement detection (Phase 17), scenario suite (Phase 19), evaluation/backtesting
+(Phase 20), latency benchmarking (Phase 21), pit wall & HQ dashboards (Phases 22-23), track
+visualization (Phase 24), and the REST/WebSocket API layer (`backend/websocket` and `GET/POST /api/*`).
+Each unbuilt directory has a stub `README.md` stating what it will own — see the repository layout
+above and [docs/PROGRESS.md](PROGRESS.md) for current status.
 
 No claim is made anywhere in this repository of real F1 telemetry access,
 FIA system integration, or production readiness. Interfaces are designed so
