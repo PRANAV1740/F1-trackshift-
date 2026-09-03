@@ -405,13 +405,25 @@ a bug in an early version (no edge-triggering on `PACE_DROP`) would have
 spammed one event per frame for the whole lap; caught by a regression test
 before it shipped (`tests/test_events.py`).
 
+## Strategy engine (`backend/strategy`, Phase 9)
+
+The only module allowed to decide PIT/STAY_OUT. A pure function
+(`decide()`) scoring every candidate against an explicit, fully-documented
+objective function — see `docs/STRATEGY.md` for the mathematics and
+`docs/VALIDATION.md` for a real off-by-one-lap bug found and fixed in its
+horizon accounting during this phase. `UNDERCUT`/`OVERCUT`/`ATTACK`/
+`DEFEND` are declared but never selected yet (need Phase 14's opponents);
+`expected_position`/`position_gain` are an explicitly-flagged naive
+carry-forward pending Phase 11/14.
+
 ## What is NOT built yet
 
-Past Phase 8: racing-line/opponent/weather intelligence, strategy engine,
-position prediction, radio pipeline, both dashboards,
-evaluation/backtesting, and the public API/WS surface. Each has a stub
-`README.md` in its directory stating this and what it will own — see the
-repository layout above and `docs/PROGRESS.md` for current status.
+Past Phase 9: racing-line/opponent/weather intelligence, compound
+selection as its own refinement, position prediction, radio pipeline,
+both dashboards, evaluation/backtesting, and the public API/WS surface.
+Each has a stub `README.md` in its directory stating this and what it
+will own — see the repository layout above and `docs/PROGRESS.md` for
+current status.
 
 No claim is made anywhere in this repository of real F1 telemetry access,
 FIA system integration, or production readiness. Interfaces are designed so

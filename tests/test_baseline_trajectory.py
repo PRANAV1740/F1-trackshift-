@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from backend.pace.estimator import PaceIntelligenceEstimator
-from backend.state.baseline import build_baseline_trajectory, _estimate_fuel_burn_rate, DEFAULT_ASSUMED_FUEL_BURN_KG_PER_LAP
+from backend.state.baseline import build_baseline_trajectory, estimate_fuel_burn_rate, DEFAULT_ASSUMED_FUEL_BURN_KG_PER_LAP
 from backend.state.baseline_estimator import BaselineTrajectoryEstimator
 from backend.state.race_state import LapRecord, RaceState
 from backend.telemetry.schema import TrackState, TyreCompound
@@ -109,14 +109,14 @@ def test_naive_position_and_gaps_are_carried_forward_from_current_state():
 
 def test_fuel_burn_rate_estimated_from_history_when_available():
     state = _state_with_history()
-    rate = _estimate_fuel_burn_rate(state)
+    rate = estimate_fuel_burn_rate(state)
     assert rate > 0
     assert rate != DEFAULT_ASSUMED_FUEL_BURN_KG_PER_LAP  # should be derived, not the fallback
 
 
 def test_fuel_burn_rate_falls_back_to_default_with_no_history():
     state = RaceState(car_id="1", current_lap=1, fuel_load_kg=110.0)
-    rate = _estimate_fuel_burn_rate(state)
+    rate = estimate_fuel_burn_rate(state)
     assert rate == DEFAULT_ASSUMED_FUEL_BURN_KG_PER_LAP
 
 

@@ -175,6 +175,41 @@ elsewhere in the docs.
   fixed by adding the same edge-triggering memory the other detectors
   already had.
 
+## Phase 9 — strategy engine (and Phase 10's core, compound comparison)
+
+- 143/143 tests passing, up from 127. Covers insufficient-data fallback,
+  race-distance-exhausted handling, an imminent-cliff scenario correctly
+  producing a PIT/PIT_NEXT_LAP decision with full reasons/risks/
+  invalidations, VSC correctly reducing pit loss and being cited in the
+  reasons, the `to_dict()` output shape, and lap-/flag-triggered
+  reassessment caching.
+- **A real, significant bug found and fixed via test-driven development,
+  not tolerance-adjusted:** the objective function integrated STAY_OUT
+  over the full remaining-race-distance horizon but every PIT candidate
+  over one lap less (an attempt to "avoid double-counting the pit lap"
+  that was simply wrong), systematically making every pit look about one
+  lap's pace cheaper than it actually was. Caught immediately by
+  `test_healthy_fresh_tyre_over_a_short_remaining_distance_stays_out`: a
+  fresh, healthy MEDIUM tyre with only 7 laps left in the race was
+  recommended to pit onto an identical fresh MEDIUM tyre — a ~70-second
+  miscalculation with no plausible real justification, unlike the earlier
+  "fuel burn-off beats degradation early" findings in Phases 2/5/7, which
+  were correct model behavior. Root-caused to the horizon mismatch and
+  fixed by integrating every candidate over the identical horizon (see
+  `backend/strategy/objective.py::score_pit`'s docstring and
+  `docs/STRATEGY.md`). Two dependent tests needed their own scenario
+  numbers corrected after the fix — one flipped from "pit wins" to
+  "stay-out wins" once the accounting was honest (a gentle cliff
+  coefficient of 0.005 genuinely does not outweigh a 22s pit loss even 14
+  laps past the cliff — correct, not a bug), and its steeper-cliff
+  replacement (`cliff_coefficient=0.05`) does produce the intended
+  "severe cliff favors pitting" result.
+- Compound comparison (Phase 10's core ask) is exercised by the same
+  tests, since `decide()` scores `PIT->SOFT`/`PIT->MEDIUM`/`PIT->HARD`
+  candidates directly against each other and against STAY_OUT — there is
+  no separate compound-selection test suite because there is no separate
+  compound-selection code path to test.
+
 ## What's intentionally NOT claimed
 
 - No claim of real F1 telemetry access or FIA integration.

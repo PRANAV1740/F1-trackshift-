@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from backend.state.baseline import BaselineTrajectory
+    from backend.strategy.engine import StrategyDecision
 
 from backend.telemetry.schema import (
     OpponentState,
@@ -116,7 +117,7 @@ class RaceState:
     # --- populated by Phase 7 (baseline trajectory) ---
     baseline_trajectory: Optional["BaselineTrajectory"] = None
     # --- populated by Phase 9/10 (strategy engine / compound selection) ---
-    current_strategy: Optional[dict] = None
+    current_strategy: Optional["StrategyDecision"] = None
     # --- populated by Phase 11 (position / outcome prediction) ---
     predicted_finishing_position: Optional[dict] = None
 

@@ -22,9 +22,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional
 
-from backend.pace.model import PaceEstimate
+from backend.pace.model import PaceEstimate, project_pace_curve
 from backend.state.race_state import RaceState
-from backend.tyre.model import DegradationEstimate, assumed_fuel_effect_s, assumed_track_evolution_gain_s
+from backend.tyre.model import DegradationEstimate
 
 DEFAULT_HORIZON_LAPS = 10
 DEFAULT_ASSUMED_FUEL_BURN_KG_PER_LAP = 1.8  # used only when no observed history exists yet
@@ -57,7 +57,7 @@ class BaselineTrajectory:
     method_note: str = NAIVE_BASELINE_NOTE
 
 
-def _estimate_fuel_burn_rate(state: RaceState) -> float:
+def estimate_fuel_burn_rate(state: RaceState) -> float:
     if len(state.completed_laps) >= 1 and state.completed_laps[0].fuel_load_kg_start is not None:
         first_fuel = state.completed_laps[0].fuel_load_kg_start
         laps_elapsed = max(state.current_lap - state.completed_laps[0].lap, 1)
@@ -74,11 +74,25 @@ def build_baseline_trajectory(
     pace_estimate: Optional[PaceEstimate],
     horizon_laps: int = DEFAULT_HORIZON_LAPS,
 ) -> BaselineTrajectory:
-    fuel_burn_rate = _estimate_fuel_burn_rate(state)
+    fuel_burn_rate = estimate_fuel_burn_rate(state)
     current_age = state.tyre_age_laps or 0
     current_fuel = state.fuel_load_kg if state.fuel_load_kg is not None else 0.0
     base_pace = degradation_estimate.base_pace_s if degradation_estimate is not None else (
         pace_estimate.expected_clean_pace_s if pace_estimate is not None else None
+    )
+
+    pace_curve = (
+        project_pace_curve(
+            base_pace_s=base_pace,
+            degradation_estimate=degradation_estimate,
+            start_lap=state.current_lap,
+            start_age_laps=current_age,
+            start_fuel_kg=current_fuel,
+            fuel_burn_rate_kg_per_lap=fuel_burn_rate,
+            n_laps=horizon_laps,
+        )
+        if base_pace is not None
+        else [None] * horizon_laps
     )
 
     projection: list[BaselineProjectionPoint] = []
@@ -86,17 +100,8 @@ def build_baseline_trajectory(
         future_lap = state.current_lap + offset
         future_age = current_age + offset
         future_fuel = max(current_fuel - fuel_burn_rate * offset, 0.0)
-
-        projected_pace = None
-        projected_degradation = None
-        if degradation_estimate is not None and base_pace is not None:
-            projected_degradation = degradation_estimate.degradation_at(future_age)
-            projected_pace = (
-                base_pace
-                + assumed_fuel_effect_s(future_fuel)
-                + assumed_track_evolution_gain_s(future_lap)
-                + projected_degradation
-            )
+        projected_pace = pace_curve[offset - 1]
+        projected_degradation = degradation_estimate.degradation_at(future_age) if degradation_estimate is not None else None
 
         projection.append(
             BaselineProjectionPoint(

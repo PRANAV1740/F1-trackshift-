@@ -51,6 +51,16 @@ class TyreDegradationEstimator:
     def get_estimate(self, car_id: str, compound: TyreCompound) -> Optional[DegradationEstimate]:
         return self._estimates.get((car_id, compound))
 
+    def set_estimate(self, car_id: str, estimate: DegradationEstimate) -> None:
+        """Directly seed an estimate, bypassing fitting.
+
+        Exists for deterministic test/demo fixtures (e.g. "construct a
+        strategy-engine scenario with a known, imminent cliff") -- normal
+        operation always goes through `update()` and real fitting.
+        """
+
+        self._estimates[(car_id, estimate.compound)] = estimate
+
     def update(self, state: RaceState) -> None:
         seen = self._seen_lap_count.get(state.car_id, 0)
         new_laps = state.completed_laps[seen:]

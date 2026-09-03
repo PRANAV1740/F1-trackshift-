@@ -1,13 +1,24 @@
 # backend/strategy
 
-**Status:** not yet implemented (Phase 8).
+**Status: implemented (Phase 9).**
 
-The decision-maker. Given the current race state and a triggering event,
-outputs a direct, explainable decision (PIT / STAY_OUT / PIT_NEXT_LAP /
-EXTEND / UNDERCUT / OVERCUT / DEFEND / ATTACK) with compound, window,
-confidence, expected position, position gain, reasons, and an invalidation
-condition (see problem prompt sections 13 and 27). This is the ONLY module
-allowed to decide whether to pit -- `radio/` may transcribe and explain, an
-LLM (if used at all) may narrate, but the decision itself is produced here
-by a scored/optimized comparison over candidate strategies (see problem
-prompt section 15 on the objective function), not by a language model.
+`engine.py::decide()` is the only place PIT/STAY_OUT gets decided — a pure
+function scoring every candidate against an explicit objective function
+(`objective.py`, math fully written out in [docs/STRATEGY.md](../../docs/STRATEGY.md)):
+projected stint time (reusing `backend/pace`'s pace projection over the
+same remaining-race-distance horizon for every candidate) + a residual-
+uncertainty risk penalty + a cliff-probability/unfitted-curve failure
+penalty. VSC/SC-aware pit-loss reduction is one term in that same
+function, not a bolt-on. `estimator.py::StrategyEngineEstimator` wires it
+into `RaceState.current_strategy`, reassessing on lap completion or an
+SC/VSC flag change.
+
+`StrategyDecisionType` declares the full vocabulary (`PIT`, `STAY_OUT`,
+`PIT_NEXT_LAP`, `EXTEND`, `UNDERCUT`, `OVERCUT`, `ATTACK`, `DEFEND`), but
+the last four are never selected yet — they need Phase 14's opponent
+intelligence. `expected_position`/`position_gain` are an explicitly-flagged
+naive carry-forward pending Phase 11/14.
+
+A real off-by-one-lap bug in the objective's horizon accounting was found
+and fixed during this phase's own test-writing — see
+[docs/VALIDATION.md](../../docs/VALIDATION.md) for the account.

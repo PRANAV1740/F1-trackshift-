@@ -41,6 +41,45 @@ class PaceEstimate:
     contributions: dict = field(default_factory=dict)
 
 
+def project_pace_curve(
+    base_pace_s: float,
+    degradation_estimate: Optional[DegradationEstimate],
+    start_lap: int,
+    start_age_laps: int,
+    start_fuel_kg: float,
+    fuel_burn_rate_kg_per_lap: float,
+    n_laps: int,
+) -> list[Optional[float]]:
+    """Per-lap projected pace for `n_laps` laps starting after `start_lap`,
+    assuming no pit stop and no condition change (the definition of a
+    baseline projection). Shared by `backend/state/baseline.py` (Phase 7)
+    and `backend/strategy` (Phase 9) so the two don't duplicate this loop --
+    a strategy candidate's projected stint time and the baseline's forward
+    projection are the same computation at different horizons.
+
+    Returns `None` for every lap if `degradation_estimate` is `None` --
+    callers decide their own fallback (e.g. a rolling average), this
+    function only knows the model-based projection.
+    """
+
+    if degradation_estimate is None:
+        return [None] * n_laps
+
+    curve: list[Optional[float]] = []
+    for offset in range(1, n_laps + 1):
+        lap = start_lap + offset
+        age = start_age_laps + offset
+        fuel = max(start_fuel_kg - fuel_burn_rate_kg_per_lap * offset, 0.0)
+        pace = (
+            base_pace_s
+            + assumed_fuel_effect_s(fuel)
+            + assumed_track_evolution_gain_s(lap)
+            + degradation_estimate.degradation_at(age)
+        )
+        curve.append(pace)
+    return curve
+
+
 def estimate_pace(
     completed_laps: list[LapRecord],
     current_lap: int,

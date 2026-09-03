@@ -1,7 +1,7 @@
 # models/pace_model
 
-**Status:** not yet implemented (Phase 6).
+**Status: implemented, but consolidated elsewhere — see note.**
 
-Any fitted component of clean-pace estimation used by `backend/pace`. Same
-documentation requirement as `models/tyre_model`: features, target,
-training method, validation, metrics, limitations.
+Same consolidation decision as `models/tyre_model` (see that directory's
+README): the pace decomposition lives in `backend/pace/model.py`, not
+here. See [docs/MODELS.md](../../docs/MODELS.md) for the full writeup.
