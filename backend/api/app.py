@@ -12,6 +12,16 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+import os
+import sys
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+
+FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
+INDEX_PATH = os.path.join(FRONTEND_DIR, "index.html")
+
 from evaluation.backtesting.engine import BacktestEngine
 from evaluation.latency.benchmark import LatencyBenchmark
 from radio.transcription.service import RadioTranscriptionService
@@ -32,7 +42,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/dashboard", StaticFiles(directory="frontend", html=True), name="dashboard")
+if os.path.isdir(FRONTEND_DIR):
+    app.mount("/dashboard", StaticFiles(directory=FRONTEND_DIR, html=True), name="dashboard")
 
 manager = ConnectionManager()
 radio_service = RadioTranscriptionService()
@@ -50,11 +61,18 @@ class RadioIngestRequest(BaseModel):
 
 @app.get("/")
 def read_root():
-    return FileResponse("frontend/index.html")
+    if os.path.exists(INDEX_PATH):
+        return FileResponse(INDEX_PATH)
+    return {
+        "status": "ok",
+        "engine": "TrackShift 2026 Race Intelligence Engine",
+        "version": "1.0.0",
+    }
 
 
 @app.get("/api/health")
 def health_check():
+
     return {
         "status": "ok",
         "engine": "TrackShift 2026 Race Intelligence Engine",
