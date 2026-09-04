@@ -1,0 +1,11 @@
+backend/
+models/
+simulator/
+radio/
+evaluation/
+tests/
+docs/
+*.py
+pyproject.toml
+requirements.txt
+render.yaml
