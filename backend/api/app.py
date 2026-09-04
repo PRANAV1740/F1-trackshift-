@@ -42,9 +42,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-if os.path.isdir(FRONTEND_DIR):
-    app.mount("/dashboard", StaticFiles(directory=FRONTEND_DIR, html=True), name="dashboard")
-
 _manager = None
 _radio_service = None
 _scenario_runner = None
@@ -94,15 +91,16 @@ class RadioIngestRequest(BaseModel):
     speaker: str = "DRIVER"
 
 
+@app.get("/api")
 @app.get("/")
+
 def read_root():
-    if os.path.exists(INDEX_PATH):
-        return FileResponse(INDEX_PATH)
     return {
         "status": "ok",
         "engine": "TrackShift 2026 Race Intelligence Engine",
         "version": "1.0.0",
     }
+
 
 
 @app.get("/api/health")
