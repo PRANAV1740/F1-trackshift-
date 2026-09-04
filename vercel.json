@@ -1,12 +1,6 @@
 {
+  "framework": null,
+  "buildCommand": "",
   "outputDirectory": "frontend",
-  "cleanUrls": true,
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" }
-      ]
-    }
-  ]
+  "cleanUrls": true
 }
