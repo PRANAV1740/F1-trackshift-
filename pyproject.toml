@@ -47,5 +47,6 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.vercel]
-entrypoint = "backend.api.app:app"
+entrypoint = "api/index.py"
+
 

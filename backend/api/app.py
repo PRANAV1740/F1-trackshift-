@@ -45,11 +45,46 @@ app.add_middleware(
 if os.path.isdir(FRONTEND_DIR):
     app.mount("/dashboard", StaticFiles(directory=FRONTEND_DIR, html=True), name="dashboard")
 
-manager = ConnectionManager()
-radio_service = RadioTranscriptionService()
-scenario_runner = ScenarioRunner()
-backtest_engine = BacktestEngine(scenario_runner)
-latency_benchmark = LatencyBenchmark()
+_manager = None
+_radio_service = None
+_scenario_runner = None
+_backtest_engine = None
+_latency_benchmark = None
+
+
+def get_manager():
+    global _manager
+    if _manager is None:
+        _manager = ConnectionManager()
+    return _manager
+
+
+def get_radio_service():
+    global _radio_service
+    if _radio_service is None:
+        _radio_service = RadioTranscriptionService()
+    return _radio_service
+
+
+def get_scenario_runner():
+    global _scenario_runner
+    if _scenario_runner is None:
+        _scenario_runner = ScenarioRunner()
+    return _scenario_runner
+
+
+def get_backtest_engine():
+    global _backtest_engine
+    if _backtest_engine is None:
+        _backtest_engine = BacktestEngine(get_scenario_runner())
+    return _backtest_engine
+
+
+def get_latency_benchmark():
+    global _latency_benchmark
+    if _latency_benchmark is None:
+        _latency_benchmark = LatencyBenchmark()
+    return _latency_benchmark
 
 
 class RadioIngestRequest(BaseModel):
@@ -72,7 +107,6 @@ def read_root():
 
 @app.get("/api/health")
 def health_check():
-
     return {
         "status": "ok",
         "engine": "TrackShift 2026 Race Intelligence Engine",
@@ -104,7 +138,7 @@ def run_scenario(scenario_id: str, seed: int = 42):
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-    states = scenario_runner.run(sc)
+    states = get_scenario_runner().run(sc)
 
     serialized_states = {}
     for car_id, state in states.items():
@@ -142,7 +176,7 @@ def run_scenario(scenario_id: str, seed: int = 42):
 
 @app.post("/api/radio")
 async def ingest_radio(request: RadioIngestRequest):
-    msg = await radio_service.transcribe_and_extract_async(
+    msg = await get_radio_service().transcribe_and_extract_async(
         car_id=request.car_id,
         lap=request.lap,
         raw_text=request.raw_text,
@@ -162,19 +196,20 @@ async def ingest_radio(request: RadioIngestRequest):
 
 @app.get("/api/evaluation")
 def get_evaluation_report(seed: int = 42):
-    report = backtest_engine.run_full_evaluation(seed=seed)
+    report = get_backtest_engine().run_full_evaluation(seed=seed)
     return asdict(report)
 
 
 @app.get("/api/latency")
 def get_latency_report(num_cars: int = 2, laps: int = 5):
-    report = latency_benchmark.run_benchmark(num_cars=num_cars, laps=laps, tick_hz=5.0)
+    report = get_latency_benchmark().run_benchmark(num_cars=num_cars, laps=laps, tick_hz=5.0)
     return asdict(report)
 
 
 @app.websocket("/ws/race")
 async def race_websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
+    mgr = get_manager()
+    await mgr.connect(websocket)
     try:
         # Send initial connection handshake
         await websocket.send_json({"type": "CONNECTED", "engine": "TrackShift 2026"})
@@ -184,4 +219,5 @@ async def race_websocket_endpoint(websocket: WebSocket):
             if data == "ping":
                 await websocket.send_json({"type": "PONG"})
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        mgr.disconnect(websocket)
+
